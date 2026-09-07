@@ -538,6 +538,60 @@
       }
     }
   },
+  "edge_detect": {
+    "description": "Scalar edge magnitude from Sobel, Scharr, or absolute four-neighbor Laplacian.",
+    "parameters": {
+      "channel": {
+        "default": "luminance",
+        "description": "Scalar control channel; use alpha for transparent silhouettes.",
+        "enum": [
+          "luminance",
+          "alpha",
+          "r",
+          "g",
+          "b"
+        ],
+        "type": "string"
+      },
+      "clamp": {
+        "default": true,
+        "description": "Clamp response to 0..1; false preserves larger values.",
+        "type": "boolean"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Boundary sampling.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "method": {
+        "default": "sobel",
+        "description": "Sobel/Scharr normalize an axis-aligned unit step to 1.",
+        "enum": [
+          "sobel",
+          "scharr",
+          "laplacian"
+        ],
+        "type": "string"
+      },
+      "strength": {
+        "default": 1.0,
+        "description": "Edge response multiplier.",
+        "max": 1000.0,
+        "min": 0.0,
+        "type": "number"
+      }
+    }
+  },
   "erode": {
     "description": "Conservative heightfield weathering: wind transport, rain water/sediment flow, or time thermal relaxation. Pixel-scale artistic simulation, not a calibrated physical solver.",
     "parameters": {
@@ -640,6 +694,79 @@
       }
     }
   },
+  "flood_fill": {
+    "description": "Connected components of a thresholded scalar channel, with seed selection or per-region values.",
+    "parameters": {
+      "channel": {
+        "default": "luminance",
+        "description": "Scalar control channel; use alpha for transparent silhouettes.",
+        "enum": [
+          "luminance",
+          "alpha",
+          "r",
+          "g",
+          "b"
+        ],
+        "type": "string"
+      },
+      "connectivity": {
+        "default": 4.0,
+        "description": "Four edge neighbors or eight including diagonals.",
+        "enum": [
+          4,
+          8
+        ],
+        "max": 8.0,
+        "min": 4.0,
+        "type": "integer"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Wrap connected regions across edges, or use a closed image boundary.",
+        "enum": [
+          "repeat",
+          "clamp"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "mode": {
+        "default": "select",
+        "description": "Selected component mask, seeded region values, normalized region IDs, or region pixel fraction.",
+        "enum": [
+          "select",
+          "random",
+          "labels",
+          "area"
+        ],
+        "type": "string"
+      },
+      "point": {
+        "default": [
+          0.5,
+          0.5
+        ],
+        "description": "Center in normalized image coordinates.",
+        "type": "pair"
+      },
+      "seed": {
+        "default": null,
+        "description": "Override document seed.",
+        "type": "seed"
+      },
+      "threshold": {
+        "default": 0.5,
+        "description": "Foreground is selected channel >= threshold.",
+        "max": 10000.0,
+        "min": -10000.0,
+        "type": "number"
+      }
+    }
+  },
   "gaussian_blur": {
     "description": "Separable Gaussian convolution, radius ceil(3*sigma), normalized discrete weights and premultiplied alpha.",
     "parameters": {
@@ -688,6 +815,79 @@
         "default": null,
         "description": "Override document seed.",
         "type": "seed"
+      }
+    }
+  },
+  "glow": {
+    "description": "Gaussian halo from a scalar channel, optionally tinted and added to the source in linear light.",
+    "parameters": {
+      "channel": {
+        "default": "luminance",
+        "description": "Scalar control channel; use alpha for transparent silhouettes.",
+        "enum": [
+          "luminance",
+          "alpha",
+          "r",
+          "g",
+          "b"
+        ],
+        "type": "string"
+      },
+      "color": {
+        "default": null,
+        "description": "Optional glow tint; defaults white.",
+        "type": "color"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Boundary sampling.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "include_source": {
+        "default": true,
+        "description": "Add original image to halo.",
+        "type": "boolean"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "mode": {
+        "default": "outer",
+        "description": "Outside halo, inside edge glow, or unrestricted blur.",
+        "enum": [
+          "outer",
+          "inner",
+          "both"
+        ],
+        "type": "string"
+      },
+      "radius": {
+        "default": 8.0,
+        "description": "Gaussian sigma in pixels.",
+        "max": 128.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "strength": {
+        "default": 1.0,
+        "description": "Halo intensity; float output may exceed 1.",
+        "max": 100.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "threshold": {
+        "default": 0.0,
+        "description": "Subtract from clamped control before blurring.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
       }
     }
   },
@@ -902,6 +1102,69 @@
       }
     }
   },
+  "normal_to_height": {
+    "description": "Least-squares integration of a tangent-space normal map using central differences and conjugate gradients. Absolute height and some high-frequency modes cannot be recovered.",
+    "parameters": {
+      "convention": {
+        "default": "directx",
+        "description": "Green-channel convention, matching the normal node.",
+        "enum": [
+          "directx",
+          "opengl"
+        ],
+        "type": "string"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Periodic or clamped central differences; match the source normal generation.",
+        "enum": [
+          "repeat",
+          "clamp"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "iterations": {
+        "default": 500.0,
+        "description": "Maximum solver iterations; zero returns a flat mean field.",
+        "max": 5000.0,
+        "min": 0.0,
+        "type": "integer"
+      },
+      "mean": {
+        "default": 0.5,
+        "description": "Mean of the reconstructed heightfield.",
+        "max": 10000.0,
+        "min": -10000.0,
+        "type": "number"
+      },
+      "min_z": {
+        "default": 0.01,
+        "description": "Minimum decoded blue/Z denominator; limits near-horizontal slopes.",
+        "max": 1.0,
+        "min": 0.0001,
+        "type": "number"
+      },
+      "strength": {
+        "default": 1.0,
+        "description": "Height scale used by the original normal conversion.",
+        "max": 1000.0,
+        "min": 1e-05,
+        "type": "number"
+      },
+      "tolerance": {
+        "default": 1e-05,
+        "description": "Stop at this relative linear-system residual.",
+        "max": 0.1,
+        "min": 1e-08,
+        "type": "number"
+      }
+    }
+  },
   "pack": {
     "description": "Pack scalar node luminances into RGBA, tagged as linear data.",
     "parameters": {
@@ -989,6 +1252,57 @@
         "default": null,
         "description": "Override document tile setting; uses 4D torus sampling.",
         "type": "boolean"
+      }
+    }
+  },
+  "polar": {
+    "description": "Convert a Cartesian disk to an angle/radius strip or wrap a strip into a disk. Resampling can lose detail at the center.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Clockwise degrees; 0 points right.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "center": {
+        "default": [
+          0.5,
+          0.5
+        ],
+        "description": "Center in normalized image coordinates.",
+        "type": "pair"
+      },
+      "edge": {
+        "default": "clamp",
+        "description": "Boundary sampling.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "mode": {
+        "default": "from_polar",
+        "description": "from_polar: strip X=angle, Y=radius to disk; to_polar performs the inverse mapping.",
+        "enum": [
+          "from_polar",
+          "to_polar"
+        ],
+        "type": "string"
+      },
+      "radius": {
+        "default": 0.5,
+        "description": "Radius in units of the shorter image dimension; pixel-circular on rectangular images.",
+        "max": 16.0,
+        "min": 0.0001,
+        "type": "number"
       }
     }
   },
@@ -1570,6 +1884,138 @@
           "square"
         ],
         "type": "string"
+      }
+    }
+  },
+  "stroke": {
+    "description": "Antialiased outline of a thresholded silhouette using Euclidean distance. Optional tint and source compositing.",
+    "parameters": {
+      "channel": {
+        "default": "luminance",
+        "description": "Scalar control channel; use alpha for transparent silhouettes.",
+        "enum": [
+          "luminance",
+          "alpha",
+          "r",
+          "g",
+          "b"
+        ],
+        "type": "string"
+      },
+      "color": {
+        "default": null,
+        "description": "Optional stroke tint; otherwise output is a scalar mask.",
+        "type": "color"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Boundary sampling.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "include_source": {
+        "default": false,
+        "description": "Composite stroke over source; scalar masks combine by maximum.",
+        "type": "boolean"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "position": {
+        "default": "outside",
+        "description": "Side of the silhouette boundary.",
+        "enum": [
+          "outside",
+          "inside",
+          "center"
+        ],
+        "type": "string"
+      },
+      "softness": {
+        "default": 0.0,
+        "description": "Extra outward fade width in pixels, beyond the built-in one-pixel antialiasing.",
+        "max": 4096.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "threshold": {
+        "default": 0.5,
+        "description": "Foreground threshold.",
+        "max": 10000.0,
+        "min": -10000.0,
+        "type": "number"
+      },
+      "width": {
+        "default": 4.0,
+        "description": "Total stroke width in pixels; centered strokes split this across the boundary.",
+        "max": 4096.0,
+        "min": 0.0,
+        "type": "number"
+      }
+    }
+  },
+  "swirl": {
+    "description": "Rotate sampling around a center with radius-dependent falloff; positive angle visibly twists clockwise.",
+    "parameters": {
+      "angle": {
+        "default": 180.0,
+        "description": "Maximum clockwise twist in degrees at the center.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "center": {
+        "default": [
+          0.5,
+          0.5
+        ],
+        "description": "Center in normalized image coordinates.",
+        "type": "pair"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Boundary sampling.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "falloff": {
+        "default": 2.0,
+        "description": "Twist multiplier (1 - radius_fraction)^falloff; outside the radius is unchanged.",
+        "max": 16.0,
+        "min": 1.0,
+        "type": "number"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "mask": {
+        "default": null,
+        "description": "Optional clamped luminance angle multiplier.",
+        "type": "reference"
+      },
+      "radius": {
+        "default": 0.5,
+        "description": "Radius in units of the shorter image dimension; pixel-circular on rectangular images.",
+        "max": 16.0,
+        "min": 0.0001,
+        "type": "number"
+      },
+      "wrap": {
+        "default": false,
+        "description": "Repeat the swirl center across tile boundaries; requires radius <= 0.5 and edge:repeat.",
+        "type": "boolean"
       }
     }
   },

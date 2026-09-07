@@ -1,0 +1,9 @@
+{
+  "size": [768, 512],
+  "alpha": true,
+  "nodes": {
+    "ink": {"op": "shape", "type": "circle", "size": 0.9, "softness": 0.08, "color": "#ed986bcc"},
+    "stamps": {"op": "stamp", "input": "ink", "size": [0.21, 0.3], "mode": "over", "points": [[0.23, 0.5], {"position": [0.42, 0.5], "size": [0.26, 0.4]}, {"position": [0.65, 0.5], "size": [0.3, 0.5], "opacity": 0.5}]}
+  },
+  "outputs": {"stamps.png": "stamps"}
+}

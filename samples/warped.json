@@ -1,0 +1,15 @@
+{
+  "size": 512,
+  "tile": true,
+  "seed": 42,
+  "nodes": {
+    "pattern": {"op": "checker", "count": [16, 16]},
+    "x": {"op": "clouds", "scale": 3, "seed": 10},
+    "y": {"op": "clouds", "scale": 3, "seed": 11},
+    "warp": {"op": "warp", "input": "pattern", "x": "x", "y": "y", "strength": 0.15},
+    "height": {"op": "blur", "input": "warp", "radius": 2, "passes": 3},
+    "color": {"op": "ramp", "input": "height", "stops": [[0, "#142635"], [0.5, "#417388"], [1, "#e4c696"]]},
+    "normal": {"op": "normal", "input": "height", "strength": 0.009}
+  },
+  "outputs": {"warped-color.png": "color", "warped-normal.png": "normal"}
+}

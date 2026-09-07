@@ -159,6 +159,19 @@ Exact Euclidean distance to nearest opposite-class pixel center, normalized by r
 | `side` | string | `"inside"` | `inside`, `outside`, `signed` | Inside to background, outside to foreground, or signed with boundary centered at 0.5. |
 | `threshold` | number | `0.5` | -10000.0..10000.0 | Foreground is luminance >= threshold. |
 
+## edge_detect
+
+Scalar edge magnitude from Sobel, Scharr, or absolute four-neighbor Laplacian.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `channel` | string | `"luminance"` | `luminance`, `alpha`, `r`, `g`, `b` | Scalar control channel; use alpha for transparent silhouettes. |
+| `clamp` | boolean | `true` |  | Clamp response to 0..1; false preserves larger values. |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `input` | reference | **required** |  | Source node name. |
+| `method` | string | `"sobel"` | `sobel`, `scharr`, `laplacian` | Sobel/Scharr normalize an axis-aligned unit step to 1. |
+| `strength` | number | `1.0` | 0.0..1000.0 | Edge response multiplier. |
+
 ## erode
 
 Conservative heightfield weathering: wind transport, rain water/sediment flow, or time thermal relaxation. Pixel-scale artistic simulation, not a calibrated physical solver.
@@ -180,6 +193,21 @@ Conservative heightfield weathering: wind transport, rain water/sediment flow, o
 | `seed` | seed | `null` |  | Override document seed. |
 | `talus` | number | `0.005` | 0.0..10000.0 | Stable height drop per pixel (time/wind). |
 
+## flood_fill
+
+Connected components of a thresholded scalar channel, with seed selection or per-region values.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `channel` | string | `"luminance"` | `luminance`, `alpha`, `r`, `g`, `b` | Scalar control channel; use alpha for transparent silhouettes. |
+| `connectivity` | integer | `4.0` | 4.0..8.0 | Four edge neighbors or eight including diagonals. |
+| `edge` | string | `"repeat"` | `repeat`, `clamp` | Wrap connected regions across edges, or use a closed image boundary. |
+| `input` | reference | **required** |  | Source node name. |
+| `mode` | string | `"select"` | `select`, `random`, `labels`, `area` | Selected component mask, seeded region values, normalized region IDs, or region pixel fraction. |
+| `point` | pair | `[0.5,0.5]` |  | Center in normalized image coordinates. |
+| `seed` | seed | `null` |  | Override document seed. |
+| `threshold` | number | `0.5` | -10000.0..10000.0 | Foreground is selected channel >= threshold. |
+
 ## gaussian_blur
 
 Separable Gaussian convolution, radius ceil(3*sigma), normalized discrete weights and premultiplied alpha.
@@ -199,6 +227,22 @@ Independent Gaussian pixel values, clipped to 0..1. Not a blurred noise.
 | `deviation` | number | `0.15` | 0.0..10.0 | Standard deviation before clipping. |
 | `mean` | number | `0.5` | -10.0..10.0 | Distribution mean before clipping. |
 | `seed` | seed | `null` |  | Override document seed. |
+
+## glow
+
+Gaussian halo from a scalar channel, optionally tinted and added to the source in linear light.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `channel` | string | `"luminance"` | `luminance`, `alpha`, `r`, `g`, `b` | Scalar control channel; use alpha for transparent silhouettes. |
+| `color` | color | `null` |  | Optional glow tint; defaults white. |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `include_source` | boolean | `true` |  | Add original image to halo. |
+| `input` | reference | **required** |  | Source node name. |
+| `mode` | string | `"outer"` | `outer`, `inner`, `both` | Outside halo, inside edge glow, or unrestricted blur. |
+| `radius` | number | `8.0` | 0.0..128.0 | Gaussian sigma in pixels. |
+| `strength` | number | `1.0` | 0.0..100.0 | Halo intensity; float output may exceed 1. |
+| `threshold` | number | `0.0` | 0.0..1.0 | Subtract from clamped control before blurring. |
 
 ## gradient
 
@@ -273,6 +317,21 @@ Convert scalar height to a tangent-space normal using central differences.
 | `input` | reference | **required** |  | Source node name. |
 | `strength` | number | `1.0` | 0.0..1000.0 | Height scale per unit UV; resolution independent. |
 
+## normal_to_height
+
+Least-squares integration of a tangent-space normal map using central differences and conjugate gradients. Absolute height and some high-frequency modes cannot be recovered.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `convention` | string | `"directx"` | `directx`, `opengl` | Green-channel convention, matching the normal node. |
+| `edge` | string | `"repeat"` | `repeat`, `clamp` | Periodic or clamped central differences; match the source normal generation. |
+| `input` | reference | **required** |  | Source node name. |
+| `iterations` | integer | `500.0` | 0.0..5000.0 | Maximum solver iterations; zero returns a flat mean field. |
+| `mean` | number | `0.5` | -10000.0..10000.0 | Mean of the reconstructed heightfield. |
+| `min_z` | number | `0.01` | 0.0001..1.0 | Minimum decoded blue/Z denominator; limits near-horizontal slopes. |
+| `strength` | number | `1.0` | 1e-05..1000.0 | Height scale used by the original normal conversion. |
+| `tolerance` | number | `1e-05` | 1e-08..0.1 | Stop at this relative linear-system residual. |
+
 ## pack
 
 Pack scalar node luminances into RGBA, tagged as linear data.
@@ -299,6 +358,19 @@ Scalar perlin noise, backed by FastNoise2.
 | `seed` | seed | `null` |  | Override document seed; omitted uses document seed. |
 | `stretch` | positive_pair | `1` |  | Feature stretch [x,y] in the generation domain, before rasterization. |
 | `tile` | boolean | `null` |  | Override document tile setting; uses 4D torus sampling. |
+
+## polar
+
+Convert a Cartesian disk to an angle/radius strip or wrap a strip into a disk. Resampling can lose detail at the center.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
+| `center` | pair | `[0.5,0.5]` |  | Center in normalized image coordinates. |
+| `edge` | string | `"clamp"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `input` | reference | **required** |  | Source node name. |
+| `mode` | string | `"from_polar"` | `from_polar`, `to_polar` | from_polar: strip X=angle, Y=radius to disk; to_polar performs the inverse mapping. |
+| `radius` | number | `0.5` | 0.0001..16.0 | Radius in units of the shorter image dimension; pixel-circular on rectangular images. |
 
 ## preset
 
@@ -442,6 +514,37 @@ Antialiased periodic scalar lines; angle 0 gives vertical grain.
 | `duty` | number | `0.5` | 0.001..0.999 | White fraction of a square wave; ignored by other profiles. |
 | `phase` | number | `0.0` | -10000.0..10000.0 | Offset in cycles; 1 is a full period. |
 | `wave` | string | `"sine"` | `sine`, `triangle`, `saw`, `square` | Periodic profile, box-filtered across the projected pixel footprint. |
+
+## stroke
+
+Antialiased outline of a thresholded silhouette using Euclidean distance. Optional tint and source compositing.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `channel` | string | `"luminance"` | `luminance`, `alpha`, `r`, `g`, `b` | Scalar control channel; use alpha for transparent silhouettes. |
+| `color` | color | `null` |  | Optional stroke tint; otherwise output is a scalar mask. |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `include_source` | boolean | `false` |  | Composite stroke over source; scalar masks combine by maximum. |
+| `input` | reference | **required** |  | Source node name. |
+| `position` | string | `"outside"` | `outside`, `inside`, `center` | Side of the silhouette boundary. |
+| `softness` | number | `0.0` | 0.0..4096.0 | Extra outward fade width in pixels, beyond the built-in one-pixel antialiasing. |
+| `threshold` | number | `0.5` | -10000.0..10000.0 | Foreground threshold. |
+| `width` | number | `4.0` | 0.0..4096.0 | Total stroke width in pixels; centered strokes split this across the boundary. |
+
+## swirl
+
+Rotate sampling around a center with radius-dependent falloff; positive angle visibly twists clockwise.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `angle` | number | `180.0` | -36000.0..36000.0 | Maximum clockwise twist in degrees at the center. |
+| `center` | pair | `[0.5,0.5]` |  | Center in normalized image coordinates. |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `falloff` | number | `2.0` | 1.0..16.0 | Twist multiplier (1 - radius_fraction)^falloff; outside the radius is unchanged. |
+| `input` | reference | **required** |  | Source node name. |
+| `mask` | reference | `null` |  | Optional clamped luminance angle multiplier. |
+| `radius` | number | `0.5` | 0.0001..16.0 | Radius in units of the shorter image dimension; pixel-circular on rectangular images. |
+| `wrap` | boolean | `false` |  | Repeat the swirl center across tile boundaries; requires radius <= 0.5 and edge:repeat. |
 
 ## threshold
 

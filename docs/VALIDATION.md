@@ -151,3 +151,36 @@ Build products and `out/` were confirmed ignored by Git after adding the new tes
 executable. Source, tests, example graphs, gallery script and documentation remain
 trackable. The sanitizer limitation recorded earlier remains unresolved; these
 new changes are validated with the Release suites, not a new sanitizer pass.
+
+## Effects, forest, portable samples and field conversion
+
+All 12 Release CTest targets pass. The advanced test executable now includes six
+groups, covering the earlier operations plus effects and connected fields.
+
+- Sobel/Scharr/Laplacian unit-step and flat-field responses.
+- Stroke inside/outside/center coverage, zero width, uniform masks and alpha silhouettes.
+- Glow impulse energy, outer support, black input, and tinted-alpha preservation.
+- Swirl zero-angle/mask identities, finite support and periodic translation behavior.
+- Polar coordinate orientation and radial scaling on rectangular images.
+- Exact worker-count determinism for effects, connected regions and normal integration.
+- Flood-fill diagonal versus edge connectivity, seam crossing, selection, area,
+  normalized labels, seeded region values and invalid connectivity.
+- Height/normal reconstruction on smooth periodic and clamped fields in both green
+  conventions, clamped ramps, chosen mean, tiny images and scalar-input rejection.
+- Every portable sample validates; copied examples match their sample copies;
+  `samples/terrain.json` also renders in the integration check.
+
+Rendered and inspected `out/effects-gallery/gallery.png` and the stronger cumulative
+`out/forest/gallery.png`. The effects gallery has 24 PNGs. The forest exports 13 PNGs
+(including unlit albedo) and four float PFM heights; its sheet shows 12 stage maps.
+The sample JSON and all documentation are check-in-ready; generated outputs remain
+ignored by Git. No full 16384-square render was attempted.
+
+Single measured runs with eight workers, including exports:
+
+| Graph | Size | Total ms | Peak tracked buffers MiB |
+| --- | --- | --- | --- |
+| effects-gallery | 512 | 427.1 | 17.0 |
+| forest | 1024 | 3406.1 | 80.0 |
+
+Maximum relative height-sum change across the cumulative forest erosion stages: 3.20e-08, measured from the float PFM exports.

@@ -53,8 +53,8 @@ the platform. Export file writes are individual, not a transactional multi-file 
 
 ## Implemented outcome
 
-The current implementation has 40 discoverable operations, 18 preset recipes, and
-nine example documents including three feature galleries.
+The current implementation has 47 discoverable operations, 18 preset recipes, and
+eleven example documents and twelve portable sample graphs.
 The evaluator and exporters follow the design above. Tiled noise is also parallel:
 TexUtil constructs periodic 4D coordinates and dispatches row batches through
 FastNoise2's SIMD position-array API. Validation, tests and measured performance
@@ -84,3 +84,18 @@ Validation adds analytic filter checks, brute-force distance comparisons,
 conservation and directional transport checks, seed/thread determinism, tiny
 heightfields, sampler controls and renders of every preset. Labeled image galleries
 are generated from checked-in JSON recipes and visually reviewed.
+
+## Effects and connected fields
+
+Added local polar swirl, Cartesian/polar remapping, glow, raster silhouette stroke,
+and edge gradients in the advanced evaluator. Wrapped swirls constrain support to
+half the smaller image dimension, preserving identity at periodic-domain boundaries.
+Connected-component flood fill and normal-map integration live in `src/fields.cpp`.
+Flood fill uses tracked integer index buffers. The conjugate-gradient height solver
+uses the exact transpose of the normal node's central-difference operator for
+periodic/clamped boundaries. Tests cover geometry, response/coverage, reconstruction,
+conservation of glow intensity, and worker-count determinism.
+
+Portable `samples/` copies retain useful material graphs outside ignored generated
+output folders. CTest validates every sample and checks copied graphs against the
+corresponding `examples/` source to prevent accidental divergence.

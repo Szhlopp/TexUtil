@@ -172,7 +172,7 @@ stamps to fit their cells; set `size` explicitly.
 
 See [the node reference](docs/NODES.md) for every field, default and allowed value,
 and [the execution plan](docs/PLAN.md) for architectural boundaries. The executable
-currently supports 40 operations and 18 built-in preset recipes. [Validation and benchmarks](docs/VALIDATION.md)
+currently supports 47 operations and 18 built-in preset recipes. [Validation and benchmarks](docs/VALIDATION.md)
 record correctness checks, measured timings and visual review.
 
 ## Directional warp and wood
@@ -211,9 +211,32 @@ python3 tools/gallery.py
 ```
 
 This optional Pillow helper saves individual PNGs and labeled `gallery.png` sheets
-under `out/nodes-gallery/`, `out/presets-gallery/`, and `out/erosion/`. Erosion also
+under `out/nodes-gallery/`, `out/presets-gallery/`, `out/erosion/`,
+`out/effects-gallery/`, and `out/forest/`. Erosion also
 exports unclipped float PFM heights. Every graph is checked in under `examples/`;
 the C++ tool can render them directly without Python.
+
+## Effects, regions and conversion
+
+[Effects](docs/EFFECTS.md) covers `glow`, `stroke`, `edge_detect`, `swirl`, and `polar`.
+[Field operations](docs/FIELDS.md) covers `flood_fill`, existing height-to-normal
+(`normal`), and least-squares `normal_to_height` reconstruction.
+
+The [forest example](docs/FOREST.md) demonstrates stronger cumulative rain, wind
+and thermal settling, with a lush green palette and separate unlit albedo.
+[Portable samples](samples/README.md) contains 12 check-in-ready JSON graphs,
+including actual `terrain.json` and `forest.json` files:
+
+```sh
+./build/texutil samples/terrain.json --out out/terrain
+python3 tools/gallery.py --only forest --size 1024
+python3 tools/gallery.py --only effects-gallery
+```
+
+The executable generates pixels using FastNoise2 SIMD noise plus TexUtil's own
+C++ algorithms operating on float buffers. libpng encodes PNG files. TexUtil's
+exporters write PPM/PGM and float PFM directly. No image-generation service, browser,
+Python runtime or GPU is involved in texture generation.
 
 ## Performance and limits
 
@@ -225,7 +248,8 @@ Export is serial. Stamps use bounds and row
 bands rather than searching all stamps at each pixel. Box blur uses sliding sums,
 so per-pixel work does not grow with radius (initial row/column sums still do).
 
-The memory budget tracks live float images, including blur intermediates. PNG decode
+The memory budget tracks live float images, blur/solver intermediates, and flood-fill
+index buffers. PNG decode
 also checks temporary raw storage against available budget. It is not a hard process
 RSS cap: codecs, thread stacks, row buffers and JSON have additional overhead.
 Graphs exceeding the image-buffer budget fail with a useful error. Stamps/arrays
@@ -241,6 +265,34 @@ output settings and input file existence. PNG contents and actual memory needs a
 checked at render time. Deterministic thread-count behavior is tested; exact output
 identity across platforms/compiler versions is not guaranteed. FastNoise2 strict
 floating-point mode is enabled.
+
+## Large heightfields
+
+Maximum dimensions are 16384 × 16384 (about 268 million pixels). Internal heights
+are 32-bit float; export PNG at 16 bits or PFM at 32 bits for height precision.
+Increasing resolution adds samples, so tune noise frequency/octaves for added detail.
+Pixel-based filters and erosion distances change their footprint with resolution.
+
+`--memory` defaults to 1024 MiB as an accidental-allocation guardrail. It is neither
+a precision limit nor a reservation of physical RAM. Raise it explicitly only when
+the machine has sufficient available memory and additional process headroom:
+
+```sh
+./build/texutil samples/terrain.json --size 16384 --memory 24576 --out out/terrain
+```
+
+| At 16384 square | Approximate tracked buffer memory |
+| --- | --- |
+| One scalar heightfield | 1 GiB |
+| Scalar input plus scalar output | 2 GiB |
+| Scalar height plus RGBA normal | 5 GiB |
+| Rain erosion input and scratch buffers | 11 GiB |
+| Normal integration input and scratch/output buffers | 10 GiB |
+
+Other live graph inputs add to these numbers. The engine holds full images in RAM;
+there is no out-of-core tile executor. Large iterative erosion/integration can be
+expensive. The 16K dimension is supported by the code limits, but no complete 16K
+render was run during this feature pass. The generated forest example is 1024 square.
 
 ## Dependencies
 

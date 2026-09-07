@@ -1,0 +1,228 @@
+{
+  "size": 512,
+  "seed": 42,
+  "tile": true,
+  "nodes": {
+    "broad": {
+      "op": "clouds",
+      "scale": 5,
+      "octaves": 3
+    },
+    "rugged": {
+      "op": "clouds",
+      "scale": 26,
+      "fractal": "ridged",
+      "octaves": 3
+    },
+    "height": {
+      "op": "blend",
+      "a": "broad",
+      "b": "rugged",
+      "mode": "multiply",
+      "opacity": 0.65
+    },
+    "before": {
+      "op": "auto_levels",
+      "input": "height",
+      "range": [
+        0.05,
+        0.95
+      ]
+    },
+    "wind": {
+      "op": "erode",
+      "input": "before",
+      "mode": "wind",
+      "angle": 20,
+      "distance": 2,
+      "iterations": 80,
+      "rate": 0.6,
+      "talus": 0.001
+    },
+    "rain": {
+      "op": "erode",
+      "input": "before",
+      "mode": "rain",
+      "iterations": 400,
+      "rate": 0.8,
+      "rainfall": 0.04,
+      "capacity": 40,
+      "evaporation": 0.12,
+      "deposition": 0.35
+    },
+    "time": {
+      "op": "erode",
+      "input": "before",
+      "mode": "time",
+      "iterations": 160,
+      "rate": 0.85,
+      "talus": 0.001
+    },
+    "before-normal": {
+      "op": "normal",
+      "input": "before",
+      "strength": 0.025
+    },
+    "before-color": {
+      "op": "ramp",
+      "input": "before",
+      "stops": [
+        [
+          0,
+          "#17262a"
+        ],
+        [
+          0.3,
+          "#4b5647"
+        ],
+        [
+          0.55,
+          "#ad915d"
+        ],
+        [
+          0.8,
+          "#d6ba87"
+        ],
+        [
+          1,
+          "#eee5cf"
+        ]
+      ]
+    },
+    "wind-normal": {
+      "op": "normal",
+      "input": "wind",
+      "strength": 0.025
+    },
+    "wind-color": {
+      "op": "ramp",
+      "input": "wind",
+      "stops": [
+        [
+          0,
+          "#17262a"
+        ],
+        [
+          0.3,
+          "#4b5647"
+        ],
+        [
+          0.55,
+          "#ad915d"
+        ],
+        [
+          0.8,
+          "#d6ba87"
+        ],
+        [
+          1,
+          "#eee5cf"
+        ]
+      ]
+    },
+    "rain-normal": {
+      "op": "normal",
+      "input": "rain",
+      "strength": 0.025
+    },
+    "rain-color": {
+      "op": "ramp",
+      "input": "rain",
+      "stops": [
+        [
+          0,
+          "#17262a"
+        ],
+        [
+          0.3,
+          "#4b5647"
+        ],
+        [
+          0.55,
+          "#ad915d"
+        ],
+        [
+          0.8,
+          "#d6ba87"
+        ],
+        [
+          1,
+          "#eee5cf"
+        ]
+      ]
+    },
+    "time-normal": {
+      "op": "normal",
+      "input": "time",
+      "strength": 0.025
+    },
+    "time-color": {
+      "op": "ramp",
+      "input": "time",
+      "stops": [
+        [
+          0,
+          "#17262a"
+        ],
+        [
+          0.3,
+          "#4b5647"
+        ],
+        [
+          0.55,
+          "#ad915d"
+        ],
+        [
+          0.8,
+          "#d6ba87"
+        ],
+        [
+          1,
+          "#eee5cf"
+        ]
+      ]
+    }
+  },
+  "outputs": {
+    "before.png": {
+      "node": "before",
+      "bits": 16
+    },
+    "wind.png": {
+      "node": "wind",
+      "bits": 16
+    },
+    "rain.png": {
+      "node": "rain",
+      "bits": 16
+    },
+    "time.png": {
+      "node": "time",
+      "bits": 16
+    },
+    "before-normal.png": "before-normal",
+    "before-color.png": "before-color",
+    "wind-normal.png": "wind-normal",
+    "wind-color.png": "wind-color",
+    "rain-normal.png": "rain-normal",
+    "rain-color.png": "rain-color",
+    "time-normal.png": "time-normal",
+    "time-color.png": "time-color",
+    "before.pfm": {
+      "node": "before",
+      "bits": 32
+    },
+    "wind.pfm": {
+      "node": "wind",
+      "bits": 32
+    },
+    "rain.pfm": {
+      "node": "rain",
+      "bits": 32
+    },
+    "time.pfm": {
+      "node": "time",
+      "bits": 32
+    }
+  }
+}

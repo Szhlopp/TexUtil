@@ -1,0 +1,67 @@
+{
+  "size": 1024,
+  "seed": 731,
+  "tile": true,
+  "nodes": {
+    "base": {
+      "op": "clouds",
+      "scale": 5,
+      "octaves": 6,
+      "gain": 0.45
+    },
+    "height": {
+      "op": "auto_levels",
+      "input": "base",
+      "range": [
+        0.1,
+        0.85
+      ]
+    },
+    "rain": {
+      "op": "erode",
+      "input": "height",
+      "mode": "rain",
+      "iterations": 120,
+      "rate": 0.4,
+      "rainfall": 0.02,
+      "capacity": 10,
+      "edge": "repeat"
+    },
+    "wind": {
+      "op": "erode",
+      "input": "rain",
+      "mode": "wind",
+      "angle": 35,
+      "distance": 1.5,
+      "iterations": 20,
+      "rate": 0.15,
+      "edge": "repeat"
+    },
+    "settled": {
+      "op": "erode",
+      "input": "wind",
+      "mode": "time",
+      "iterations": 32,
+      "rate": 0.25,
+      "talus": 0.002,
+      "edge": "repeat"
+    },
+    "normal": {
+      "op": "normal",
+      "input": "settled",
+      "strength": 0.035,
+      "edge": "repeat"
+    }
+  },
+  "outputs": {
+    "terrain-height.png": {
+      "node": "settled",
+      "bits": 16
+    },
+    "terrain-height.pfm": {
+      "node": "settled",
+      "bits": 32
+    },
+    "terrain-normal.png": "normal"
+  }
+}

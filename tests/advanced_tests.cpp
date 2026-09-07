@@ -117,7 +117,74 @@ void testSourcesAndPresets() {
     auto expanded=expandPresets({{"p",{{"op","preset"},{"name","brick"}}},{"__preset_0",{{"op","constant"},{"value",.75}}}});check(expanded["__preset_0"]["value"]==.75,"preset name collision avoided");
     bool bad=false;try{normalizedNode("bad",{{"op","scatter"},{"input","x"},{"size",.8},{"size_jitter",.5},{"wrap",true}});}catch(const std::exception&){bad=true;}check(bad,"wrap validates maximum random size");
 }
+void testEffects() {
+    Fixture f(32,32), multi(32,32,4);
+    auto step=f.image([](int x,int){return x>=16 ? 1.0f : 0.0f;}), flat=f.image([](int,int){return .5f;});
+    for(std::string method:{"sobel","scharr","laplacian"}) {
+        auto out=f.run({{"op","edge_detect"},{"input","s"},{"method",method},{"edge","clamp"}},{{"s",step}});
+        near(out->get(15,12)[0],1);near(out->get(16,12)[0],1);near(out->get(14,12)[0],0);near(out->get(17,12)[0],0);
+        near(mass(f.run({{"op","edge_detect"},{"input","s"},{"method",method}},{{"s",flat}})),0,1e-6);
+    }
+    for(std::string position:{"outside","inside","center"}) {
+        Json spec={{"op","stroke"},{"input","s"},{"width",2},{"position",position},{"edge","clamp"}};
+        auto out=f.run(spec,{{"s",step}});
+        near(out->get(15,12)[0],position=="inside"?0:1);near(out->get(16,12)[0],position=="outside"?0:1);
+        near(out->get(14,12)[0],position=="outside"?1:0);near(out->get(17,12)[0],position=="inside"?1:0);
+        spec["width"]=0;near(mass(f.run(spec,{{"s",step}})),0);
+        for(float value:{0.0f,1.0f}) {auto uniform=f.image([&](int,int){return value;});spec["width"]=2;near(mass(f.run(spec,{{"s",uniform}})),0);}
+    }
+    auto alpha=f.run({{"op","shape"},{"size",.4},{"color","#000000"}});
+    auto outline=f.run({{"op","stroke"},{"input","s"},{"channel","alpha"},{"color","#ff0000"}},{{"s",alpha}});
+    double coverage=0;for(int y=0;y<32;++y)for(int x=0;x<32;++x){auto p=outline->get(x,y);coverage+=p[3];if(p[3]>0){near(p[0],1);near(p[1],0);}}check(coverage>1,"black alpha silhouette strokes");
+    auto impulse=f.image([](int x,int y){return x==16&&y==16?1.0f:0.0f;});
+    auto halo=f.run({{"op","glow"},{"input","s"},{"mode","both"},{"include_source",false},{"radius",2}},{{"s",impulse}});near(mass(halo),1,2e-6);
+    auto glow=f.run({{"op","glow"},{"input","s"},{"mode","outer"},{"radius",2}},{{"s",impulse}});near(glow->get(16,16)[0],1);check(glow->get(17,16)[0]>0,"outer glow reaches background");
+    auto black=f.image([](int,int){return 0.0f;});
+    for(std::string mode:{"outer","inner","both"})near(mass(f.run({{"op","glow"},{"input","s"},{"mode",mode}},{{"s",black}})),0);
+    auto tinted=f.run({{"op","glow"},{"input","s"},{"include_source",false},{"color","#00ff00"},{"channel","alpha"}},{{"s",alpha}});bool visible=false;for(int y=0;y<32;++y)for(int x=0;x<32;++x){auto p=tinted->get(x,y);if(p[3]>1e-5f){visible=true;near(p[0],0);near(p[1],1);}}check(visible,"alpha glow stays green through transparency");
+    auto pattern=f.run({{"op","clouds"},{"scale",4},{"tile",true}});
+    Json swirl={{"op","swirl"},{"input","s"},{"angle",0}};check(f.run(swirl,{{"s",pattern}})->pixels==pattern->pixels,"zero swirl identity");swirl["angle"]=240;swirl["mask"]="mask";check(f.run(swirl,{{"s",pattern},{"mask",black}})->pixels==pattern->pixels,"black swirl mask identity");swirl.erase("mask");swirl["radius"]=.3;
+    auto twisted=f.run(swirl,{{"s",pattern}});near(twisted->get(0,0)[0],pattern->get(0,0)[0]);check(twisted->pixels!=pattern->pixels,"swirl changes interior");
+    // Moving a periodic source and swirl center by half a tile moves the output equally.
+    swirl["wrap"]=true;swirl["center"]={.25,.5};auto a=f.run(swirl,{{"s",pattern}});auto shifted=f.image([&](int x,int y){return pattern->get((x+16)%32,y)[0];});swirl["center"]={.75,.5};auto b=f.run(swirl,{{"s",shifted}});for(int y=0;y<32;++y)for(int x=0;x<32;++x)near(a->get((x+16)%32,y)[0],b->get(x,y)[0],2e-5);
+    for(std::string op:{"stroke","glow","swirl","polar","edge_detect"}) {Json spec={{"op",op},{"input","s"}};check(f.run(spec,{{"s",pattern}})->pixels==multi.run(spec,{{"s",pattern}})->pixels,op+" deterministic workers");}
+    Fixture rectangle(65,33);auto ramp=rectangle.image([](int,int y){return (y+.5f)/33;});
+    auto disk=rectangle.run({{"op","polar"},{"input","s"},{"mode","from_polar"}},{{"s",ramp}});
+    near(disk->get(40,16)[0],8/16.5f);near(disk->get(32,24)[0],8/16.5f);near(disk->get(0,0)[0],0);
+    auto cartesian=rectangle.image([](int x,int){return (x+.5f)/65;});auto strip=rectangle.run({{"op","polar"},{"input","s"},{"mode","to_polar"}},{{"s",cartesian}});
+    for(int y=0;y<33;++y)for(int x=0;x<65;++x){double theta=(x+.5)*6.283185307179586/65, r=(y+.5)/33*.5;near(strip->get(x,y)[0],.5+std::cos(theta)*r*33/65,2e-6);}
+    auto angular=rectangle.image([](int x,int){return .5f+.5f*std::cos((x+.5f)*6.283185307179586f/65);});auto angles=rectangle.run({{"op","polar"},{"input","s"}},{{"s",angular}});near(angles->get(40,16)[0],1,0.002);near(angles->get(24,16)[0],0,.002);near(angles->get(32,24)[0],.5,.002);
+    auto quarter=rectangle.run({{"op","polar"},{"input","s"},{"angle",90}},{{"s",angular}});near(quarter->get(32,24)[0],1,.002);
+    for(auto spec:std::vector<Json>{{{"op","swirl"},{"input","s"},{"wrap",true},{"radius",.7}},{{"op","swirl"},{"input","s"},{"wrap",true},{"edge","clamp"}},{{"op","stroke"},{"input","s"},{"width",-1}}}){bool bad=false;try{normalizedNode("bad",spec);}catch(const std::exception&){bad=true;}check(bad,"invalid effect parameters rejected");}
+}
+
+void testFieldConversions() {
+    Fixture f(16,16), multi(16,16,4);
+    auto mask=f.image([](int x,int y){return (x==0&&y==2)||(x==15&&y==2)||(x==5&&y==5)||(x==6&&y==6)?1.0f:0.0f;});
+    Json spec={{"op","flood_fill"},{"input","s"},{"point",{.02,.15}},{"edge","repeat"}};
+    auto selected=f.run(spec,{{"s",mask}});near(mass(selected),2);near(selected->get(15,2)[0],1);
+    spec["edge"]="clamp";near(mass(f.run(spec,{{"s",mask}})),1);
+    spec["point"]={5.5/16,5.5/16};spec["connectivity"]=8;near(mass(f.run(spec,{{"s",mask}})),2);spec["connectivity"]=4;near(mass(f.run(spec,{{"s",mask}})),1);
+    spec["mode"]="area";auto area=f.run(spec,{{"s",mask}});near(area->get(5,5)[0],1.0/256);near(area->get(4,4)[0],0);
+    spec["mode"]="labels";auto labels=f.run(spec,{{"s",mask}});near(labels->get(0,2)[0],.25);near(labels->get(15,2)[0],.5);near(labels->get(5,5)[0],.75);near(labels->get(6,6)[0],1);
+    spec["mode"]="random";auto random=f.run(spec,{{"s",mask}});check(random->pixels==multi.run(spec,{{"s",mask}})->pixels,"flood fill deterministic");spec["seed"]=99;check(random->pixels!=f.run(spec,{{"s",mask}})->pixels,"flood fill seeded values");
+    for(int size:{1,2,17,32})for(std::string edge:{"repeat","clamp"})for(std::string convention:{"directx","opengl"}) {
+        Fixture one(size,size), four(size,size,4);
+        auto terrain=one.image([&](int x,int y){return .5f+.12f*std::sin(6.283185307179586f*(x+.5f)/size)+.08f*std::cos(6.283185307179586f*(y+.5f)/size);});
+        auto normals=one.run({{"op","normal"},{"input","s"},{"strength",.03},{"edge",edge},{"convention",convention}},{{"s",terrain}});
+        Json integration={{"op","normal_to_height"},{"input","s"},{"strength",.03},{"edge",edge},{"convention",convention},{"iterations",400},{"tolerance",.000001}};
+        auto reconstructed=one.run(integration,{{"s",normals}});check(reconstructed->pixels==four.run(integration,{{"s",normals}})->pixels,"normal integration deterministic");near(mass(reconstructed)/reconstructed->pixels.size(),.5,1e-6);
+        // Periodic 1/2-pixel fields contain only derivative-null modes.
+        if(size>=17)for(size_t i=0;i<terrain->pixels.size();++i)near(reconstructed->pixels[i],terrain->pixels[i],.0002);
+        integration["iterations"]=0;auto flat=one.run(integration,{{"s",normals}});for(float v:flat->pixels)near(v,.5);
+    }
+    auto ramp=f.image([](int x,int){return (x+.5f)/16;});auto normal=f.run({{"op","normal"},{"input","s"},{"strength",.01},{"edge","clamp"}},{{"s",ramp}});
+    auto rebuilt=f.run({{"op","normal_to_height"},{"input","s"},{"strength",.01},{"edge","clamp"}},{{"s",normal}});for(size_t i=0;i<ramp->pixels.size();++i)near(rebuilt->pixels[i],ramp->pixels[i],1e-4);
+    bool bad=false;try{f.run({{"op","normal_to_height"},{"input","s"}},{{"s",mask}});}catch(const std::exception&){bad=true;}check(bad,"scalar normal map rejected");
+    bool connectivity=false;try{normalizedNode("x",{{"op","flood_fill"},{"input","s"},{"connectivity",6}});}catch(const std::exception&){connectivity=true;}check(connectivity,"invalid connectivity rejected");
+}
+
 }
 int main() {
-    int failed=0;for(const auto& [name,test]:std::vector<std::pair<std::string,std::function<void()>>>{{"exact distance and bevel",testDistance},{"filters and math",testFilters},{"erosion conservation and determinism",testErosion},{"sources samplers and presets",testSourcesAndPresets}}){try{test();std::cout<<"PASS "<<name<<'\n';}catch(const std::exception& e){++failed;std::cerr<<"FAIL "<<name<<": "<<e.what()<<'\n';}}return failed?1:0;
+    int failed=0;for(const auto& [name,test]:std::vector<std::pair<std::string,std::function<void()>>>{{"exact distance and bevel",testDistance},{"filters and math",testFilters},{"erosion conservation and determinism",testErosion},{"sources samplers and presets",testSourcesAndPresets},{"glow stroke polar swirl and edges",testEffects},{"flood fill and normal integration",testFieldConversions}}){try{test();std::cout<<"PASS "<<name<<'\n';}catch(const std::exception& e){++failed;std::cerr<<"FAIL "<<name<<": "<<e.what()<<'\n';}}return failed?1:0;
 }

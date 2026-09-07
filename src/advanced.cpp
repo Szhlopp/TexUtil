@@ -84,11 +84,12 @@ ImagePtr advanced(const Json& n, const std::map<std::string, ImagePtr>& inputs, 
         }
         return out;
     }
+    if (op == "flood_fill" || op == "normal_to_height") return fieldOperations(n, inputs, c);
     if (op != "math" && op != "auto_levels" && op != "range_mask" && op != "distance" && op != "bevel" && op != "gaussian_blur" && op != "directional_blur" && op != "slope_blur" && op != "swirl" && op != "polar" && op != "edge_detect" && op != "stroke" && op != "glow") return {};
     auto src = inputs.at(n["input"].get<std::string>());
     if (op == "swirl") {
         float cx = n["center"][0], cy = n["center"][1], radius = n["radius"], degrees = n["angle"], falloff = n["falloff"];
-        bool wrap = n["wrap"]; std::string edge = n["edge"]; float unit = static_cast<float>(std::min(c.width, c.height));
+        bool wrap = n["wrap"]; if (wrap) { cx -= std::floor(cx); cy -= std::floor(cy); } std::string edge = n["edge"]; float unit = static_cast<float>(std::min(c.width, c.height));
         auto mask = n.contains("mask") ? inputs.at(n["mask"].get<std::string>()) : ImagePtr{};
         if (degrees == 0) return src;
         return pixels(src->kind, [&](int x, int y) {

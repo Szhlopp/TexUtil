@@ -95,6 +95,7 @@ struct Context {
 ImagePtr execute(const Json& node, const std::map<std::string, ImagePtr>& inputs, Context& context);
 
 ImagePtr advanced(const Json& node, const std::map<std::string, ImagePtr>& inputs, Context& context);
+ImagePtr fieldOperations(const Json& node, const std::map<std::string, ImagePtr>& inputs, Context& context);
 ImagePtr erode(const Json& node, const ImagePtr& input, const ImagePtr& mask, Context& context);
 
 class Graph {
