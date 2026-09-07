@@ -3,6 +3,10 @@
 Generate textures from small JSON graphs. C++17, CPU SIMD noise, parallel image
 operations, floating-point intermediates, and a command line designed for agents.
 
+![TexUtil samples: potion materials, forest erosion, snow, warped wood grain and cork](docs/images/texutil-samples.jpg)
+
+Explore the [sample graphs](samples/README.md) to generate your own materials.
+
 ## Build on macOS
 
 Install Apple Command Line Tools and [Homebrew](https://brew.sh), then install the
