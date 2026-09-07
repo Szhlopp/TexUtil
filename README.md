@@ -5,8 +5,9 @@ operations, floating-point intermediates, and a command line designed for agents
 
 ## Build on macOS
 
-Apple Command Line Tools, CMake, Git, Ninja and libpng are needed. On this machine
-they are already installed. On a fresh Mac:
+Install Apple Command Line Tools and [Homebrew](https://brew.sh), then install the
+build dependencies. CMake 3.24 or newer is required. The Command Line Tools supply
+the C++ compiler and Git.
 
 ```sh
 xcode-select --install
@@ -16,11 +17,60 @@ cmake --build build -j 8
 ctest --test-dir build --output-on-failure
 ```
 
-The first configure downloads pinned FastNoise2 1.1.1 and nlohmann/json 3.12.0.
-FastNoise2 also fetches a pinned FastSIMD revision. Subsequent builds use the local
-build cache. No GUI or GPU is required. CImg is unnecessary for this implementation.
-On Linux, install a C++17 compiler, CMake, Ninja, Git, pkg-config and libpng development
-headers using your distribution's package manager. Only macOS ARM64 has been tested.
+Run the CMake commands from the TexUtil repository root. The executable is
+`build/texutil`.
+
+## Build on Windows
+
+Install **Visual Studio 2022** or **Build Tools for Visual Studio 2022** with the
+**Desktop development with C++** workload, including the Windows SDK and C++ CMake
+tools. Install Git for Windows as well. Use CMake 3.24 or newer.
+
+Open **Developer PowerShell for VS 2022**. Install libpng and its zlib dependency
+through [vcpkg](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started-vs)
+(one-time setup):
+
+```powershell
+$texutilVcpkg = Join-Path $env:LOCALAPPDATA "TexUtil-vcpkg"
+git clone https://github.com/microsoft/vcpkg.git "$texutilVcpkg"
+& "$texutilVcpkg\bootstrap-vcpkg.bat" -disableMetrics
+& "$texutilVcpkg\vcpkg.exe" install libpng:x64-windows
+```
+
+From the TexUtil repository root, configure, build and test the 64-bit Release build:
+
+```powershell
+$texutilVcpkg = Join-Path $env:LOCALAPPDATA "TexUtil-vcpkg"
+cmake -S . -B build-windows -G "Visual Studio 17 2022" -A x64 "-DCMAKE_TOOLCHAIN_FILE=$texutilVcpkg/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON
+cmake --build build-windows --config Release --parallel 8
+ctest --test-dir build-windows -C Release --output-on-failure
+.\build-windows\Release\texutil.exe samples\stone.json --out out\stone
+```
+
+The executable is `build-windows/Release/texutil.exe`. vcpkg's CMake integration
+copies the required dependency DLLs beside the executable; keep those DLLs with it
+when copying the utility. The target computer also needs the matching x64 Visual
+C++ runtime. See [vcpkg CMake integration](https://learn.microsoft.com/en-us/vcpkg/users/buildsystems/cmake-integration)
+and [Microsoft's redistributable](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist).
+
+## Build on Linux
+
+Install a C++17 compiler, CMake 3.24 or newer, Ninja, Git, pkg-config and libpng
+development headers using your distribution's package manager. Then run:
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel 8
+ctest --test-dir build --output-on-failure
+```
+
+On all platforms, the first configure downloads pinned FastNoise2 1.1.1 and
+nlohmann/json 3.12.0. FastNoise2 also fetches a pinned FastSIMD revision. Subsequent
+builds reuse the build cache. Use separate build directories for different platforms
+and toolchains. Texture generation and MaterialX export require no GUI or GPU.
+
+Build and test validation currently covers macOS ARM64. Windows and Linux validation
+is pending.
 
 ## Run
 
