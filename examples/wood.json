@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "size": 1024,
+  "seed": 73,
+  "nodes": {
+    "growth-lines": {"op": "stripes", "count": 42, "wave": "sine"},
+    "grain-noise": {"op": "clouds", "scale": 9, "octaves": 4},
+    "long-grain": {"op": "transform", "input": "grain-noise", "scale": [1, 12], "offset": [0, 0.1], "edge": "repeat"},
+    "wavy-lines": {"op": "directional_warp", "input": "growth-lines", "intensity": "long-grain", "strength": 0.045, "midlevel": 0.5},
+    "knot-profile": {"op": "shape", "size": 0.98, "softness": 1},
+    "knots": {"op": "stamp", "input": "knot-profile", "points": [{"position": [0.3, 0.3], "size": [0.28, 0.46]}, {"position": [0.73, 0.72], "size": [0.23, 0.4]}, {"position": [0.8, 0.14], "size": [0.16, 0.3]}]},
+    "knotted-grain": {"op": "directional_warp", "input": "wavy-lines", "intensity": "knots", "angle": 0, "strength": 0.25},
+    "growth-profile": {"op": "levels", "input": "knotted-grain", "gamma": 0.32, "out": [0.94, 0.18]},
+    "fine-lines": {"op": "stripes", "count": 155, "wave": "sine"},
+    "fine-waves": {"op": "directional_warp", "input": "fine-lines", "intensity": "long-grain", "strength": 0.045, "midlevel": 0.5},
+    "fine-knots": {"op": "directional_warp", "input": "fine-waves", "intensity": "knots", "strength": 0.25},
+    "grain": {"op": "blend", "a": "growth-profile", "b": "fine-knots", "mode": "multiply", "opacity": 0.14},
+    "tone": {"op": "blend", "a": "grain", "b": "long-grain", "mode": "mix", "opacity": 0.15},
+    "knot-shade": {"op": "levels", "input": "knots", "in": [0.58, 1], "out": [1, 0.3]},
+    "shaded-tone": {"op": "blend", "a": "tone", "b": "knot-shade", "mode": "multiply", "opacity": 0.65},
+    "fiber-noise": {"op": "clouds", "scale": 75, "octaves": 3},
+    "fibers": {"op": "transform", "input": "fiber-noise", "scale": [1, 18]},
+    "fiber-wave": {"op": "directional_warp", "input": "fibers", "intensity": "long-grain", "strength": 0.045, "midlevel": 0.5},
+    "fiber-knots": {"op": "directional_warp", "input": "fiber-wave", "intensity": "knots", "strength": 0.25},
+    "detailed-tone": {"op": "blend", "a": "shaded-tone", "b": "fiber-knots", "mode": "multiply", "opacity": 0.17},
+    "color": {"op": "ramp", "input": "detailed-tone", "stops": [[0, "#382017"], [0.22, "#70452c"], [0.5, "#a97749"], [0.78, "#c59864"], [1, "#d4b07f"]]},
+    "height": {"op": "levels", "input": "grain", "out": [0.35, 0.65]},
+    "normal": {"op": "normal", "input": "height", "strength": 0.002},
+    "roughness": {"op": "levels", "input": "grain", "out": [0.65, 0.4]}
+  },
+  "outputs": {
+    "wood-color.png": "color",
+    "wood-height.png": {"node": "height", "bits": 16},
+    "wood-normal.png": "normal",
+    "wood-roughness.png": "roughness"
+  }
+}

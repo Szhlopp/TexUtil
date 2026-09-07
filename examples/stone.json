@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "size": 512,
+  "seed": 42,
+  "tile": true,
+  "nodes": {
+    "raw-cells": {"op": "voronoi", "scale": 9, "feature": "edges"},
+    "cells": {"op": "levels", "input": "raw-cells", "in": [0, 0.22]},
+    "clouds": {"op": "clouds", "scale": 5, "octaves": 5},
+    "height": {"op": "blend", "a": "cells", "b": "clouds", "mode": "multiply", "opacity": 0.8},
+    "albedo": {"op": "ramp", "input": "height", "stops": [[0.08, "#20222a"], [0.4, "#716557"], [0.75, "#c7bda7"]]},
+    "normal": {"op": "normal", "input": "height", "strength": 0.035, "convention": "directx"},
+    "roughness": {"op": "levels", "input": "clouds", "out": [0.55, 0.95]}
+  },
+  "outputs": {
+    "stone-height.png": {"node": "height", "bits": 16},
+    "stone-albedo.png": "albedo",
+    "stone-normal.png": "normal",
+    "stone-roughness.png": "roughness"
+  }
+}

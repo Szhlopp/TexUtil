@@ -1,0 +1,52 @@
+# Out-of-source builds (including sanitizer and IDE configurations).
+/build*/
+/cmake-build*/
+/install/
+
+# Generated textures, previews and benchmark results. Keep source assets elsewhere.
+/out/
+
+# Accidental in-source CMake/Ninja output.
+/CMakeCache.txt
+/CMakeFiles/
+/CTestTestfile.cmake
+/DartConfiguration.tcl
+/Testing/
+/cmake_install.cmake
+/install_manifest.txt
+/compile_commands.json
+/build.ninja
+/rules.ninja
+/.ninja_deps
+/.ninja_log
+/_deps/
+/texutil
+/texutil_tests
+
+# Compiled C/C++ artifacts.
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.dSYM/
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+
+# Machine-specific settings and temporary files.
+/CMakeUserPresets.json
+/.idea/
+/.vscode/
+.DS_Store
+._*
+*~
+*.swp
+*.swo
+__pycache__/
+*.py[cod]

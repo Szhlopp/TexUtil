@@ -1,0 +1,14 @@
+{
+  "size": 512,
+  "tile": true,
+  "seed": 18,
+  "nodes": {
+    "tile": {"op": "shape", "type": "box", "size": [0.96, 0.96], "softness": 0.09},
+    "layout": {"op": "array", "input": "tile", "count": [6, 6], "size": 0.156, "wrap": true},
+    "grain": {"op": "perlin", "scale": 20, "fractal": "fbm", "octaves": 4},
+    "height": {"op": "blend", "a": "layout", "b": "grain", "mode": "multiply", "opacity": 0.15},
+    "color": {"op": "ramp", "input": "height", "stops": [[0, "#172322"], [0.5, "#254b48"], [0.8, "#44847b"], [1, "#8ec0a9"]]},
+    "normal": {"op": "normal", "input": "height", "strength": 0.012}
+  },
+  "outputs": {"tiles-color.png": "color", "tiles-height.png": {"node": "height", "bits": 16}, "tiles-normal.png": "normal"}
+}

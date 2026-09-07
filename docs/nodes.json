@@ -1,0 +1,1139 @@
+{
+  "array": {
+    "description": "Grid of source stamps, centered in each cell.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Stamp clockwise angle.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "count": {
+        "default": [
+          4,
+          4
+        ],
+        "description": "Grid [columns,rows], maximum 10000 total.",
+        "type": "count_pair"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "jitter": {
+        "default": 0.0,
+        "description": "Position jitter as a fraction of each grid cell.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "mode": {
+        "default": "max",
+        "description": "Overlap/blend operation.",
+        "enum": [
+          "over",
+          "mix",
+          "multiply",
+          "add",
+          "subtract",
+          "screen",
+          "overlay",
+          "min",
+          "max",
+          "difference"
+        ],
+        "type": "string"
+      },
+      "opacity": {
+        "default": 1.0,
+        "description": "Blend strength, 0 to 1.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "rotation_jitter": {
+        "default": 0.0,
+        "description": "Random +/- angle in degrees.",
+        "max": 360.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "seed": {
+        "default": null,
+        "description": "Override document seed.",
+        "type": "seed"
+      },
+      "size": {
+        "default": 0.1,
+        "description": "Stamp full width/height in UV units.",
+        "type": "positive_pair"
+      },
+      "wrap": {
+        "default": false,
+        "description": "Wrap stamps across output boundaries; max stamp size 1 UV.",
+        "type": "boolean"
+      }
+    }
+  },
+  "blend": {
+    "description": "Combine two fields, optionally through a scalar mask.",
+    "parameters": {
+      "a": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "b": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "mask": {
+        "default": null,
+        "description": "Optional mask node; clamped luminance multiplies opacity.",
+        "type": "reference"
+      },
+      "mode": {
+        "default": "over",
+        "description": "Overlap/blend operation.",
+        "enum": [
+          "over",
+          "mix",
+          "multiply",
+          "add",
+          "subtract",
+          "screen",
+          "overlay",
+          "min",
+          "max",
+          "difference"
+        ],
+        "type": "string"
+      },
+      "opacity": {
+        "default": 1.0,
+        "description": "Blend strength, 0 to 1.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      }
+    }
+  },
+  "blur": {
+    "description": "Separable box blur, optionally repeated to approximate Gaussian blur.",
+    "parameters": {
+      "edge": {
+        "default": "repeat",
+        "description": "Sampling outside the source.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "passes": {
+        "default": 3.0,
+        "description": "Repeated box passes.",
+        "max": 6.0,
+        "min": 1.0,
+        "type": "integer"
+      },
+      "radius": {
+        "default": 3.0,
+        "description": "Box radius in pixels.",
+        "max": 2048.0,
+        "min": 0.0,
+        "type": "integer"
+      }
+    }
+  },
+  "checker": {
+    "description": "Alternating scalar squares.",
+    "parameters": {
+      "count": {
+        "default": [
+          8,
+          8
+        ],
+        "description": "Cell counts [columns,rows].",
+        "type": "count_pair"
+      }
+    }
+  },
+  "clouds": {
+    "description": "Scalar clouds noise, backed by FastNoise2.",
+    "parameters": {
+      "fractal": {
+        "default": "fbm",
+        "description": "Fractal noise combination.",
+        "enum": [
+          "none",
+          "fbm",
+          "ridged"
+        ],
+        "type": "string"
+      },
+      "gain": {
+        "default": 0.5,
+        "description": "Amplitude multiplier per octave.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "lacunarity": {
+        "default": 2.0,
+        "description": "Frequency multiplier per octave.",
+        "max": 4.0,
+        "min": 1.0,
+        "type": "number"
+      },
+      "octaves": {
+        "default": 5.0,
+        "description": "Number of fractal octaves.",
+        "max": 12.0,
+        "min": 1.0,
+        "type": "integer"
+      },
+      "scale": {
+        "default": 8.0,
+        "description": "Noise frequency across a unit image; larger gives smaller features.",
+        "max": 4096.0,
+        "min": 0.001,
+        "type": "number"
+      },
+      "seed": {
+        "default": null,
+        "description": "Override document seed; omitted uses document seed.",
+        "type": "seed"
+      },
+      "tile": {
+        "default": null,
+        "description": "Override document tile setting; uses 4D torus sampling.",
+        "type": "boolean"
+      }
+    }
+  },
+  "constant": {
+    "description": "Solid scalar or linear color. Hex strings are decoded from sRGB.",
+    "parameters": {
+      "value": {
+        "default": 0.0,
+        "description": "Number, #RRGGBB[AA], or linear [r,g,b,a].",
+        "type": "color"
+      }
+    }
+  },
+  "directional_warp": {
+    "description": "Displace the source along one direction, optionally controlled by a grayscale image or channel.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Clockwise sampling direction: 0 right, 90 down. Visible content moves oppositely.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "channel": {
+        "default": "luminance",
+        "description": "Channel of intensity; scalar fields work directly. Values clamp to 0..1.",
+        "enum": [
+          "luminance",
+          "r",
+          "g",
+          "b",
+          "a"
+        ],
+        "type": "string"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Sampling outside the source.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "intensity": {
+        "default": null,
+        "description": "Optional control node; omission supplies white (1) everywhere.",
+        "type": "reference"
+      },
+      "midlevel": {
+        "default": 0.0,
+        "description": "Neutral intensity; 0 makes black stationary, 0.5 gives signed displacement.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "strength": {
+        "default": 0.05,
+        "description": "UV displacement = strength * (intensity - midlevel).",
+        "max": 10.0,
+        "min": -10.0,
+        "type": "number"
+      }
+    }
+  },
+  "gradient": {
+    "description": "Linear, radial or angular scalar gradient.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Clockwise degrees; 0 runs left to right.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "center": {
+        "default": [
+          0.5,
+          0.5
+        ],
+        "description": "Center in normalized image coordinates.",
+        "type": "pair"
+      },
+      "radius": {
+        "default": 0.5,
+        "description": "Radial range in UV units.",
+        "max": 16.0,
+        "min": 0.0001,
+        "type": "number"
+      },
+      "reverse": {
+        "default": false,
+        "description": "Invert gradient.",
+        "type": "boolean"
+      },
+      "type": {
+        "default": "linear",
+        "description": "Gradient geometry.",
+        "enum": [
+          "linear",
+          "radial",
+          "angular"
+        ],
+        "type": "string"
+      }
+    }
+  },
+  "grayscale": {
+    "description": "Linear Rec.709 luminance; discards alpha.",
+    "parameters": {
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      }
+    }
+  },
+  "image": {
+    "description": "Import a PNG and resize to document dimensions.",
+    "parameters": {
+      "kind": {
+        "default": "color",
+        "description": "Interpretation of pixel values.",
+        "enum": [
+          "color",
+          "scalar",
+          "normal"
+        ],
+        "type": "string"
+      },
+      "path": {
+        "description": "PNG path relative to the JSON file.",
+        "required": true,
+        "type": "string"
+      },
+      "srgb": {
+        "default": true,
+        "description": "Decode sRGB for color inputs; ignored for data.",
+        "type": "boolean"
+      }
+    }
+  },
+  "invert": {
+    "description": "Invert RGB/scalar values, preserving alpha.",
+    "parameters": {
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      }
+    }
+  },
+  "levels": {
+    "description": "Clamp input range, apply gamma, map to output range.",
+    "parameters": {
+      "gamma": {
+        "default": 1.0,
+        "description": "Exponent uses 1/gamma.",
+        "max": 100.0,
+        "min": 0.01,
+        "type": "number"
+      },
+      "in": {
+        "default": [
+          0,
+          1
+        ],
+        "description": "Strictly increasing input range.",
+        "type": "pair"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "out": {
+        "default": [
+          0,
+          1
+        ],
+        "description": "Output range; may be reversed.",
+        "type": "pair"
+      }
+    }
+  },
+  "normal": {
+    "description": "Convert scalar height to a tangent-space normal using central differences.",
+    "parameters": {
+      "convention": {
+        "default": "directx",
+        "description": "DirectX uses +height derivative in image Y for green; OpenGL flips green.",
+        "enum": [
+          "directx",
+          "opengl"
+        ],
+        "type": "string"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Sampling outside the source.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "strength": {
+        "default": 1.0,
+        "description": "Height scale per unit UV; resolution independent.",
+        "max": 1000.0,
+        "min": 0.0,
+        "type": "number"
+      }
+    }
+  },
+  "pack": {
+    "description": "Pack scalar node luminances into RGBA, tagged as linear data.",
+    "parameters": {
+      "a": {
+        "default": null,
+        "description": "Optional alpha source; defaults to 1.",
+        "type": "reference"
+      },
+      "b": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "g": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "r": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      }
+    }
+  },
+  "perlin": {
+    "description": "Scalar perlin noise, backed by FastNoise2.",
+    "parameters": {
+      "fractal": {
+        "default": "none",
+        "description": "Fractal noise combination.",
+        "enum": [
+          "none",
+          "fbm",
+          "ridged"
+        ],
+        "type": "string"
+      },
+      "gain": {
+        "default": 0.5,
+        "description": "Amplitude multiplier per octave.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "lacunarity": {
+        "default": 2.0,
+        "description": "Frequency multiplier per octave.",
+        "max": 4.0,
+        "min": 1.0,
+        "type": "number"
+      },
+      "octaves": {
+        "default": 5.0,
+        "description": "Number of fractal octaves.",
+        "max": 12.0,
+        "min": 1.0,
+        "type": "integer"
+      },
+      "scale": {
+        "default": 8.0,
+        "description": "Noise frequency across a unit image; larger gives smaller features.",
+        "max": 4096.0,
+        "min": 0.001,
+        "type": "number"
+      },
+      "seed": {
+        "default": null,
+        "description": "Override document seed; omitted uses document seed.",
+        "type": "seed"
+      },
+      "tile": {
+        "default": null,
+        "description": "Override document tile setting; uses 4D torus sampling.",
+        "type": "boolean"
+      }
+    }
+  },
+  "radial": {
+    "description": "Radial array of source stamps.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Stamp clockwise angle.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "center": {
+        "default": [
+          0.5,
+          0.5
+        ],
+        "description": "Center in normalized image coordinates.",
+        "type": "pair"
+      },
+      "count": {
+        "default": 12.0,
+        "description": "Number of stamps around the circle.",
+        "max": 10000.0,
+        "min": 1.0,
+        "type": "integer"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "mode": {
+        "default": "max",
+        "description": "Overlap/blend operation.",
+        "enum": [
+          "over",
+          "mix",
+          "multiply",
+          "add",
+          "subtract",
+          "screen",
+          "overlay",
+          "min",
+          "max",
+          "difference"
+        ],
+        "type": "string"
+      },
+      "opacity": {
+        "default": 1.0,
+        "description": "Blend strength, 0 to 1.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "orient": {
+        "default": true,
+        "description": "Rotate stamps with their radial placement angle.",
+        "type": "boolean"
+      },
+      "radius": {
+        "default": 0.35,
+        "description": "Distance of stamp centers from array center in UV.",
+        "max": 16.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "size": {
+        "default": 0.1,
+        "description": "Stamp full width/height in UV units.",
+        "type": "positive_pair"
+      },
+      "start": {
+        "default": -90.0,
+        "description": "Starting angle; -90 is top.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "sweep": {
+        "default": 360.0,
+        "description": "Angular sweep; excludes its endpoint.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "wrap": {
+        "default": false,
+        "description": "Wrap stamps across output boundaries; max stamp size 1 UV.",
+        "type": "boolean"
+      }
+    }
+  },
+  "ramp": {
+    "description": "Map scalar luminance to a color gradient with ordered stops.",
+    "parameters": {
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "interpolation": {
+        "default": "linear",
+        "description": "Interpolation between stops in linear RGB.",
+        "enum": [
+          "linear",
+          "smooth",
+          "constant"
+        ],
+        "type": "string"
+      },
+      "stops": {
+        "description": "At least two [position,color] stops, strictly increasing.",
+        "required": true,
+        "type": "array"
+      }
+    }
+  },
+  "shape": {
+    "description": "Antialiased scalar mask or transparent colored stamp.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Clockwise rotation in degrees.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "center": {
+        "default": [
+          0.5,
+          0.5
+        ],
+        "description": "Center in normalized image coordinates.",
+        "type": "pair"
+      },
+      "color": {
+        "default": null,
+        "description": "Optional color; omission produces a scalar mask.",
+        "type": "color"
+      },
+      "size": {
+        "default": 0.8,
+        "description": "Full width/height in UV units.",
+        "type": "positive_pair"
+      },
+      "softness": {
+        "default": 0.0,
+        "description": "Inward edge feather, relative to half-size.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "thickness": {
+        "default": 0.2,
+        "description": "Ring thickness, relative to radius.",
+        "max": 1.0,
+        "min": 0.001,
+        "type": "number"
+      },
+      "type": {
+        "default": "circle",
+        "description": "Shape geometry.",
+        "enum": [
+          "circle",
+          "box",
+          "diamond",
+          "ring"
+        ],
+        "type": "string"
+      }
+    }
+  },
+  "simplex": {
+    "description": "Scalar simplex noise, backed by FastNoise2.",
+    "parameters": {
+      "fractal": {
+        "default": "none",
+        "description": "Fractal noise combination.",
+        "enum": [
+          "none",
+          "fbm",
+          "ridged"
+        ],
+        "type": "string"
+      },
+      "gain": {
+        "default": 0.5,
+        "description": "Amplitude multiplier per octave.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "lacunarity": {
+        "default": 2.0,
+        "description": "Frequency multiplier per octave.",
+        "max": 4.0,
+        "min": 1.0,
+        "type": "number"
+      },
+      "octaves": {
+        "default": 5.0,
+        "description": "Number of fractal octaves.",
+        "max": 12.0,
+        "min": 1.0,
+        "type": "integer"
+      },
+      "scale": {
+        "default": 8.0,
+        "description": "Noise frequency across a unit image; larger gives smaller features.",
+        "max": 4096.0,
+        "min": 0.001,
+        "type": "number"
+      },
+      "seed": {
+        "default": null,
+        "description": "Override document seed; omitted uses document seed.",
+        "type": "seed"
+      },
+      "tile": {
+        "default": null,
+        "description": "Override document tile setting; uses 4D torus sampling.",
+        "type": "boolean"
+      }
+    }
+  },
+  "stamp": {
+    "description": "Place a source image at explicit positions on an empty field.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Stamp clockwise angle.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "mode": {
+        "default": "max",
+        "description": "Overlap/blend operation.",
+        "enum": [
+          "over",
+          "mix",
+          "multiply",
+          "add",
+          "subtract",
+          "screen",
+          "overlay",
+          "min",
+          "max",
+          "difference"
+        ],
+        "type": "string"
+      },
+      "opacity": {
+        "default": 1.0,
+        "description": "Blend strength, 0 to 1.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "points": {
+        "description": "Placements: [x,y] or {position:[x,y],size,angle,opacity}; up to 10000.",
+        "required": true,
+        "type": "array"
+      },
+      "size": {
+        "default": 0.1,
+        "description": "Stamp full width/height in UV units.",
+        "type": "positive_pair"
+      },
+      "wrap": {
+        "default": false,
+        "description": "Wrap stamps across output boundaries; max stamp size 1 UV.",
+        "type": "boolean"
+      }
+    }
+  },
+  "stripes": {
+    "description": "Antialiased periodic scalar lines; angle 0 gives vertical grain.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Clockwise sampling direction in degrees; lines are perpendicular.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "count": {
+        "default": 32.0,
+        "description": "Cycles per unit UV along the gradient direction.",
+        "max": 4096.0,
+        "min": 0.001,
+        "type": "number"
+      },
+      "duty": {
+        "default": 0.5,
+        "description": "White fraction of a square wave; ignored by other profiles.",
+        "max": 0.999,
+        "min": 0.001,
+        "type": "number"
+      },
+      "phase": {
+        "default": 0.0,
+        "description": "Offset in cycles; 1 is a full period.",
+        "max": 10000.0,
+        "min": -10000.0,
+        "type": "number"
+      },
+      "wave": {
+        "default": "sine",
+        "description": "Periodic profile, box-filtered across the projected pixel footprint.",
+        "enum": [
+          "sine",
+          "triangle",
+          "saw",
+          "square"
+        ],
+        "type": "string"
+      }
+    }
+  },
+  "threshold": {
+    "description": "Threshold luminance with optional smooth transition.",
+    "parameters": {
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "softness": {
+        "default": 0.0,
+        "description": "Transition width.",
+        "max": 10.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "value": {
+        "default": 0.5,
+        "description": "Threshold level.",
+        "max": 1000.0,
+        "min": -1000.0,
+        "type": "number"
+      }
+    }
+  },
+  "transform": {
+    "description": "Inverse-mapped translation, scaling and rotation.",
+    "parameters": {
+      "angle": {
+        "default": 0.0,
+        "description": "Clockwise rotation in degrees.",
+        "max": 36000.0,
+        "min": -36000.0,
+        "type": "number"
+      },
+      "edge": {
+        "default": "repeat",
+        "description": "Sampling outside the source.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "offset": {
+        "default": [
+          0,
+          0
+        ],
+        "description": "UV translation.",
+        "type": "pair"
+      },
+      "scale": {
+        "default": 1.0,
+        "description": "Positive scalar or [x,y] scale.",
+        "type": "positive_pair"
+      }
+    }
+  },
+  "value": {
+    "description": "Scalar value noise, backed by FastNoise2.",
+    "parameters": {
+      "fractal": {
+        "default": "none",
+        "description": "Fractal noise combination.",
+        "enum": [
+          "none",
+          "fbm",
+          "ridged"
+        ],
+        "type": "string"
+      },
+      "gain": {
+        "default": 0.5,
+        "description": "Amplitude multiplier per octave.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "lacunarity": {
+        "default": 2.0,
+        "description": "Frequency multiplier per octave.",
+        "max": 4.0,
+        "min": 1.0,
+        "type": "number"
+      },
+      "octaves": {
+        "default": 5.0,
+        "description": "Number of fractal octaves.",
+        "max": 12.0,
+        "min": 1.0,
+        "type": "integer"
+      },
+      "scale": {
+        "default": 8.0,
+        "description": "Noise frequency across a unit image; larger gives smaller features.",
+        "max": 4096.0,
+        "min": 0.001,
+        "type": "number"
+      },
+      "seed": {
+        "default": null,
+        "description": "Override document seed; omitted uses document seed.",
+        "type": "seed"
+      },
+      "tile": {
+        "default": null,
+        "description": "Override document tile setting; uses 4D torus sampling.",
+        "type": "boolean"
+      }
+    }
+  },
+  "voronoi": {
+    "description": "Scalar voronoi noise, backed by FastNoise2.",
+    "parameters": {
+      "distance": {
+        "default": "euclidean",
+        "description": "Cell distance metric.",
+        "enum": [
+          "euclidean",
+          "squared",
+          "manhattan",
+          "hybrid"
+        ],
+        "type": "string"
+      },
+      "feature": {
+        "default": "distance",
+        "description": "Nearest distance, random cell values, or F2-F1 edges (bright cell interiors).",
+        "enum": [
+          "distance",
+          "cells",
+          "edges"
+        ],
+        "type": "string"
+      },
+      "fractal": {
+        "default": "none",
+        "description": "Fractal noise combination.",
+        "enum": [
+          "none",
+          "fbm",
+          "ridged"
+        ],
+        "type": "string"
+      },
+      "gain": {
+        "default": 0.5,
+        "description": "Amplitude multiplier per octave.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "jitter": {
+        "default": 1.0,
+        "description": "Cell point jitter.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "lacunarity": {
+        "default": 2.0,
+        "description": "Frequency multiplier per octave.",
+        "max": 4.0,
+        "min": 1.0,
+        "type": "number"
+      },
+      "octaves": {
+        "default": 5.0,
+        "description": "Number of fractal octaves.",
+        "max": 12.0,
+        "min": 1.0,
+        "type": "integer"
+      },
+      "scale": {
+        "default": 8.0,
+        "description": "Noise frequency across a unit image; larger gives smaller features.",
+        "max": 4096.0,
+        "min": 0.001,
+        "type": "number"
+      },
+      "seed": {
+        "default": null,
+        "description": "Override document seed; omitted uses document seed.",
+        "type": "seed"
+      },
+      "tile": {
+        "default": null,
+        "description": "Override document tile setting; uses 4D torus sampling.",
+        "type": "boolean"
+      }
+    }
+  },
+  "warp": {
+    "description": "Displace sampling coordinates using independent scalar maps centered at 0.5.",
+    "parameters": {
+      "edge": {
+        "default": "repeat",
+        "description": "Sampling outside the source.",
+        "enum": [
+          "repeat",
+          "clamp",
+          "transparent"
+        ],
+        "type": "string"
+      },
+      "input": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "strength": {
+        "default": 0.05,
+        "description": "Maximum UV displacement; map 0/1 maps to -/+strength.",
+        "max": 10.0,
+        "min": -10.0,
+        "type": "number"
+      },
+      "x": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      },
+      "y": {
+        "description": "Source node name.",
+        "required": true,
+        "type": "reference"
+      }
+    }
+  },
+  "white": {
+    "description": "Scalar white noise, backed by FastNoise2.",
+    "parameters": {
+      "fractal": {
+        "default": "none",
+        "description": "Fractal noise combination.",
+        "enum": [
+          "none",
+          "fbm",
+          "ridged"
+        ],
+        "type": "string"
+      },
+      "gain": {
+        "default": 0.5,
+        "description": "Amplitude multiplier per octave.",
+        "max": 1.0,
+        "min": 0.0,
+        "type": "number"
+      },
+      "lacunarity": {
+        "default": 2.0,
+        "description": "Frequency multiplier per octave.",
+        "max": 4.0,
+        "min": 1.0,
+        "type": "number"
+      },
+      "octaves": {
+        "default": 5.0,
+        "description": "Number of fractal octaves.",
+        "max": 12.0,
+        "min": 1.0,
+        "type": "integer"
+      },
+      "scale": {
+        "default": 8.0,
+        "description": "Noise frequency across a unit image; larger gives smaller features.",
+        "max": 4096.0,
+        "min": 0.001,
+        "type": "number"
+      },
+      "seed": {
+        "default": null,
+        "description": "Override document seed; omitted uses document seed.",
+        "type": "seed"
+      },
+      "tile": {
+        "default": null,
+        "description": "Override document tile setting; uses 4D torus sampling.",
+        "type": "boolean"
+      }
+    }
+  }
+}
