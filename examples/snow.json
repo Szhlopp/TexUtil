@@ -1,0 +1,256 @@
+{
+  "size": 2048,
+  "seed": 826,
+  "tile": true,
+  "nodes": {
+    "drifts": {
+      "op": "clouds",
+      "scale": 4,
+      "stretch": [
+        1.1,
+        2.5
+      ],
+      "angle": 25,
+      "octaves": 4,
+      "gain": 0.42
+    },
+    "wind-ripples": {
+      "op": "clouds",
+      "scale": 22,
+      "stretch": [
+        0.55,
+        4
+      ],
+      "angle": 25,
+      "octaves": 3,
+      "gain": 0.38
+    },
+    "surface-form": {
+      "op": "blend",
+      "a": "drifts",
+      "b": "wind-ripples",
+      "mode": "mix",
+      "opacity": 0.22
+    },
+    "snow-depth": {
+      "op": "levels",
+      "input": "surface-form",
+      "in": [
+        0.25,
+        0.75
+      ],
+      "out": [
+        0.4,
+        0.6
+      ]
+    },
+    "wind-packed": {
+      "op": "erode",
+      "input": "snow-depth",
+      "mode": "wind",
+      "angle": 25,
+      "distance": 2,
+      "iterations": 20,
+      "rate": 0.2,
+      "talus": 0.0001,
+      "edge": "repeat"
+    },
+    "settled": {
+      "op": "erode",
+      "input": "wind-packed",
+      "mode": "time",
+      "iterations": 6,
+      "rate": 0.2,
+      "talus": 0.0001,
+      "edge": "repeat"
+    },
+    "powder": {
+      "op": "clouds",
+      "scale": 160,
+      "octaves": 3,
+      "gain": 0.35
+    },
+    "powder-relief": {
+      "op": "levels",
+      "input": "powder",
+      "in": [
+        0.2,
+        0.8
+      ],
+      "out": [
+        -0.009,
+        0.009
+      ]
+    },
+    "crystals": {
+      "op": "gaussian_noise",
+      "mean": 0.5,
+      "deviation": 0.14
+    },
+    "crystal-relief": {
+      "op": "levels",
+      "input": "crystals",
+      "out": [
+        -0.0018,
+        0.0018
+      ]
+    },
+    "powder-height": {
+      "op": "math",
+      "input": "settled",
+      "b": "powder-relief",
+      "mode": "add"
+    },
+    "height": {
+      "op": "math",
+      "input": "powder-height",
+      "b": "crystal-relief",
+      "mode": "add"
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.08,
+      "convention": "directx",
+      "edge": "repeat"
+    },
+    "snow-white": {
+      "op": "ramp",
+      "input": "settled",
+      "stops": [
+        [
+          0.38,
+          "#e4edf5"
+        ],
+        [
+          0.5,
+          "#f1f6fa"
+        ],
+        [
+          0.62,
+          "#fcfdfd"
+        ]
+      ]
+    },
+    "powder-tone": {
+      "op": "ramp",
+      "input": "powder",
+      "stops": [
+        [
+          0,
+          "#cedde9"
+        ],
+        [
+          0.5,
+          "#f2f6f9"
+        ],
+        [
+          1,
+          "#ffffff"
+        ]
+      ]
+    },
+    "color": {
+      "op": "blend",
+      "a": "snow-white",
+      "b": "powder-tone",
+      "mode": "multiply",
+      "opacity": 0.2
+    },
+    "normal-centered": {
+      "op": "math",
+      "input": "normal",
+      "mode": "subtract",
+      "value": 0.5
+    },
+    "normal-decoded": {
+      "op": "math",
+      "input": "normal-centered",
+      "mode": "multiply",
+      "value": 2
+    },
+    "light-vector": {
+      "op": "constant",
+      "value": [
+        -2.114010124623848,
+        -0.5585863192829109,
+        11.06650791000382
+      ]
+    },
+    "light-components": {
+      "op": "math",
+      "input": "normal-decoded",
+      "b": "light-vector",
+      "mode": "multiply"
+    },
+    "lambert": {
+      "op": "grayscale",
+      "input": "light-components"
+    },
+    "diffuse": {
+      "op": "math",
+      "input": "lambert",
+      "mode": "clamp",
+      "range": [
+        0,
+        1
+      ]
+    },
+    "diffuse-strength": {
+      "op": "math",
+      "input": "diffuse",
+      "mode": "multiply",
+      "value": 0.9
+    },
+    "lighting": {
+      "op": "math",
+      "input": "diffuse-strength",
+      "mode": "add",
+      "value": 0.15
+    },
+    "lit-preview": {
+      "op": "blend",
+      "a": "color",
+      "b": "lighting",
+      "mode": "multiply"
+    }
+  },
+  "outputs": {
+    "snow-color.png": "color",
+    "snow-height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "snow-height.pfm": {
+      "node": "height",
+      "bits": 32
+    },
+    "snow-normal.png": "normal",
+    "snow-lit.png": "lit-preview",
+    "snow-sheet.png": {
+      "type": "sheet",
+      "title": "Snow / wind-packed powder",
+      "columns": 2,
+      "cell": 448,
+      "padding": 18,
+      "items": [
+        {
+          "node": "lit-preview",
+          "label": "Lit material preview"
+        },
+        {
+          "node": "color",
+          "label": "Color / unlit albedo"
+        },
+        {
+          "node": "height",
+          "label": "Height / 16-bit export"
+        },
+        {
+          "node": "normal",
+          "label": "Normal / DirectX"
+        }
+      ]
+    }
+  }
+}

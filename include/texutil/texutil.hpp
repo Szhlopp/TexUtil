@@ -79,8 +79,22 @@ struct Options {
     size_t memoryMb = 1024;
     std::filesystem::path out = ".";
 };
+struct SheetItem { std::string node, label; };
+struct Sheet {
+    std::vector<SheetItem> items;
+    int columns = 3, cellWidth = 256, cellHeight = 256, padding = 12, fontScale = 2;
+    int width = 0, height = 0, titleHeight = 0, labelHeight = 0;
+    bool labels = true;
+    std::string title;
+    Pixel background{0,0,0,1}, textColor{1,1,1,1};
+};
+Sheet parseSheet(const Json& output);
+ImagePtr createSheet(const Sheet& sheet, std::shared_ptr<Memory> memory);
+void drawSheetItem(Image& canvas, const Sheet& sheet, size_t index, const Image& source, Workers& workers);
+
 struct Output {
     std::string name, node, format;
+    std::optional<Sheet> sheet;
     int bits = 8;
     bool alpha = false;
     bool srgb = true;

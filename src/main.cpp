@@ -19,7 +19,8 @@ void help() {
 A file of '-' reads JSON from stdin; image paths then use the current directory.
 Render --json prints machine-readable statistics. --stats prints node timings.
 Defaults: output in current directory, up to 16 CPU threads, 1024 MB float buffers.
-PNG (8/16-bit), PPM, PGM, PFM outputs. See README.md and docs/NODES.md.
+PNG (8/16-bit), PPM, PGM, PFM outputs. Native labeled sheets: output type "sheet".
+See README.md, docs/NODES.md and docs/SHEETS.md.
 )";
 }
 long long integer(const std::string& text, long long min, long long max, const std::string& name) {

@@ -65,14 +65,23 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
     std::set<std::filesystem::path> destinations;
     for (auto it = doc["outputs"].begin(); it != doc["outputs"].end(); ++it) {
         Json o = it.value(); if (o.is_string()) o = {{"node", o}};
-        fields(o, {"node", "format", "bits", "alpha", "srgb"}, "output '" + it.key() + "'");
-        require(o.contains("node"), "output '" + it.key() + "' needs node");
-        Output out; out.node = string(o["node"], "output node"); require(nodes_.count(out.node), "output references unknown node '" + out.node + "'");
+        std::string type = string(o.value("type", Json("image")), "output type");
+        require(type == "image" || type == "sheet", "output type must be image or sheet");
+        Output out;
+        if (type == "sheet") {
+            fields(o, {"type", "format", "bits", "alpha", "srgb", "items", "columns", "cell", "padding", "font_scale", "labels", "title", "background", "text_color"}, "output '" + it.key() + "'");
+            out.sheet = parseSheet(o);
+            for (const auto& item : out.sheet->items) require(nodes_.count(item.node), "sheet references unknown node '" + item.node + "'");
+        } else {
+            fields(o, {"type", "node", "format", "bits", "alpha", "srgb"}, "output '" + it.key() + "'");
+            require(o.contains("node"), "output '" + it.key() + "' needs node");
+            out.node = string(o["node"], "output node"); require(nodes_.count(out.node), "output references unknown node '" + out.node + "'");
+        }
         auto path = std::filesystem::path(it.key());
         require(!it.key().empty() && !path.is_absolute() && path.has_filename(), "output filename must be relative to --out");
         for (const auto& part : path) require(part != "..", "output filenames cannot contain '..'");
         std::string extension = path.extension().string(); if (!extension.empty()) extension.erase(0, 1);
-        out.format = string(o.value("format", Json(extension.empty() ? defaultFormat : extension)), "output format");
+        out.format = string(o.value("format", Json(extension.empty() ? (out.sheet ? "png" : defaultFormat) : extension)), "output format");
         require(out.format == "png" || out.format == "ppm" || out.format == "pgm" || out.format == "pfm", "unsupported output format '" + out.format + "'");
         require(extension.empty() || extension == out.format, "output extension must match format");
         if (extension.empty()) path += "." + out.format;
@@ -80,12 +89,13 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
         const auto destination = std::filesystem::weakly_canonical(options_.out / path);
         for (const auto& [id, node] : nodes_) if (node["op"] == "image") require(destination != std::filesystem::weakly_canonical(base_ / node["path"].get<std::string>()), "output would overwrite input image for node '" + id + "'");
         out.name = path.string();
-        out.bits = boundedInteger(o.value("bits", Json(out.format == "pfm" ? 32 : defaultBits)), 8, 32, "output bits");
+        out.bits = boundedInteger(o.value("bits", Json(out.sheet ? 8 : (out.format == "pfm" ? 32 : defaultBits))), 8, 32, "output bits");
         require(out.format == "pfm" ? out.bits == 32 : (out.bits == 8 || out.bits == 16), "PFM requires 32 bits; PNG/PPM/PGM require 8 or 16");
-        out.alpha = boolean(o.value("alpha", Json(alpha)), "output alpha");
+        out.alpha = boolean(o.value("alpha", Json(out.sheet ? false : alpha)), "output alpha");
         require(!out.alpha || out.format == "png", "alpha output requires PNG");
-        out.srgb = boolean(o.value("srgb", Json(out.format == "pfm" ? false : srgb)), "output srgb");
+        out.srgb = boolean(o.value("srgb", Json(out.sheet ? true : (out.format == "pfm" ? false : srgb))), "output srgb");
         require(out.format != "pfm" || !out.srgb, "PFM outputs must be linear (srgb:false)");
+        if (out.sheet) require(out.format == "png" && out.srgb && !out.alpha, "sheet outputs require PNG, srgb:true and alpha:false");
         outputs_.push_back(out);
     }
     state.clear();
@@ -95,7 +105,7 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
         for (const auto& dependency : dependencies(nodes_.at(id))) schedule(dependency);
         order_.push_back(id);
     };
-    for (const auto& output : outputs_) schedule(output.node);
+    for (const auto& output : outputs_) { if (output.sheet) { for (const auto& item : output.sheet->items) schedule(item.node); } else schedule(output.node); }
 }
 Json Graph::summary() const { return {{"size", {width_, height_}}, {"seed", seed_}, {"nodes", nodes_.size()}, {"reachable", order_.size()}, {"outputs", outputs_.size()}, {"order", order_}}; }
 Json Graph::render(const std::function<void(const Output&, const ImagePtr&)>& sink) {
@@ -108,6 +118,14 @@ Json Graph::render(const std::function<void(const Output&, const ImagePtr&)>& si
     std::map<std::string, ImagePtr> cache;
     Json stats = summary(); stats["timings"] = Json::array(); stats["files"] = Json::array(); stats["threads"] = workers.count();
     double exportMs = 0;
+    std::vector<ImagePtr> sheets(outputs_.size()); std::vector<size_t> remaining(outputs_.size());
+    for (size_t i=0;i<outputs_.size();++i) if (outputs_[i].sheet) remaining[i]=outputs_[i].sheet->items.size();
+    auto emit = [&](const Output& output, const ImagePtr& image) {
+        if (sink) sink(output,image);
+        else writeImage(options_.out/output.name,*image,output.format,output.bits,output.alpha,output.srgb,background_);
+        stats["files"].push_back((options_.out/output.name).string());
+        stats["output_details"].push_back({{"file",output.name},{"type",output.sheet ? "sheet" : "image"},{"size",{image->width,image->height}},{"bits",output.bits},{"format",output.format}});
+    };
     for (const auto& id : order_) {
         auto begin = Clock::now();
         ImagePtr result;
@@ -116,12 +134,17 @@ Json Graph::render(const std::function<void(const Output&, const ImagePtr&)>& si
         double ms = std::chrono::duration<double, std::milli>(Clock::now() - begin).count();
         stats["timings"].push_back({{"node", id}, {"op", nodes_.at(id)["op"]}, {"ms", ms}});
         cache[id] = result;
-        for (const auto& output : outputs_) if (output.node == id) {
-            auto exportStart = Clock::now();
-            if (sink) sink(output, result);
-            else writeImage(options_.out / output.name, *result, output.format, output.bits, output.alpha, output.srgb, background_);
-            exportMs += std::chrono::duration<double, std::milli>(Clock::now() - exportStart).count();
-            stats["files"].push_back((options_.out / output.name).string());
+        for (size_t i=0;i<outputs_.size();++i) {
+            const auto& output=outputs_[i]; auto exportStart=Clock::now();
+            if (output.sheet) {
+                const auto& sheet=*output.sheet;
+                for (size_t item=0;item<sheet.items.size();++item) if (sheet.items[item].node==id) {
+                    if (!sheets[i]) sheets[i]=createSheet(sheet,memory);
+                    drawSheetItem(*sheets[i],sheet,item,*result,workers); --remaining[i];
+                }
+                if (sheets[i] && remaining[i]==0) { emit(output,sheets[i]); sheets[i].reset(); }
+            } else if (output.node==id) emit(output,result);
+            exportMs+=std::chrono::duration<double,std::milli>(Clock::now()-exportStart).count();
         }
         for (const auto& dep : dependencies(nodes_.at(id))) if (--uses[dep] == 0) cache.erase(dep);
         if (uses[id] == 0) cache.erase(id);

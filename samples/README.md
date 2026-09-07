@@ -12,6 +12,7 @@ ignored along with build products.
 
 | Sample | What it produces |
 | --- | --- |
+| `snow.json` | Tileable snow albedo, height, normals, lighting preview and a native labeled sheet. |
 | `terrain.json` | Compact cumulative rain, wind and thermal terrain; 16-bit PNG, float PFM, normals. |
 | `forest.json` | Lush forest comparison before/after sequential erosion, plus unlit albedo. |
 | `erosion.json` | Independent wind/rain/time comparison from the same starting terrain. |
@@ -23,7 +24,7 @@ ignored along with build products.
 | `warped.json` | Displacement demonstration. |
 | `nodes-gallery.json` | Advanced primitive/filter demonstrations. |
 | `presets-gallery.json` | All 18 preset recipes. |
-| `effects-gallery.json` | Glow, stroke, edge detection, swirl and polar transforms. |
+| `effects-gallery.json` | Glow, stroke, edge detection, swirl/polar, flood fill and normal integration. |
 
 Except for the compact `terrain.json`, these are copies of the corresponding
 `examples/` graphs used by the documentation/gallery tool. Keep the corresponding
@@ -35,3 +36,6 @@ an illustrative filename in a CLI command.
 CLI `--size` overrides the saved resolution. Simulation iterations, pixel distances
 and noise frequencies still need tuning for another resolution. See the large
 texture notes in the project README before attempting a 16384-square erosion job.
+
+The five gallery/comparison samples and `snow.json` include native `type:sheet` outputs.
+They render their labeled graphics directly with TexUtil; no Pillow step is needed.

@@ -54,7 +54,7 @@ the platform. Export file writes are individual, not a transactional multi-file 
 ## Implemented outcome
 
 The current implementation has 47 discoverable operations, 18 preset recipes, and
-eleven example documents and twelve portable sample graphs.
+twelve example documents and thirteen portable sample graphs.
 The evaluator and exporters follow the design above. Tiled noise is also parallel:
 TexUtil constructs periodic 4D coordinates and dispatches row batches through
 FastNoise2's SIMD position-array API. Validation, tests and measured performance
@@ -99,3 +99,17 @@ conservation of glow intensity, and worker-count determinism.
 Portable `samples/` copies retain useful material graphs outside ignored generated
 output folders. CTest validates every sample and checks copied graphs against the
 corresponding `examples/` source to prevent accidental divergence.
+
+## Native contact-sheet outputs
+
+A sheet is an output type with an ordered node list, not a processing node. References
+participate in scheduling and validation. As each node finishes, its thumbnails are
+area-filtered into any open sheet canvases before its ordinary graph lifetime ends.
+This preserves memory release for full-resolution sources. Canvases count against
+the same memory budget and are written once their final item arrives.
+
+The compositor preserves aspect ratio, handles transparent color in linear light,
+and converts raw data previews so sRGB encoding does not brighten normal/height
+channels. A built-in 5x7 ASCII font draws titles/captions without another dependency.
+Native galleries replace Python/Pillow assembly for the five current contact-sheet
+examples. The snow material exports its individual maps and a native 2x2 sheet.

@@ -279,6 +279,110 @@
     "region-area-visible.png": "region-area-visible",
     "reconstruct-source.png": "reconstruct-source",
     "reconstruct-normal.png": "reconstruct-normal",
-    "reconstructed.png": "reconstructed"
+    "reconstructed.png": "reconstructed",
+    "gallery.png": {
+      "type": "sheet",
+      "title": "effects gallery",
+      "columns": 4,
+      "cell": 224,
+      "items": [
+        {
+          "node": "star",
+          "label": "star"
+        },
+        {
+          "node": "glow-outer",
+          "label": "glow outer"
+        },
+        {
+          "node": "glow-inner",
+          "label": "glow inner"
+        },
+        {
+          "node": "glow-both",
+          "label": "glow both"
+        },
+        {
+          "node": "stroke-outside",
+          "label": "stroke outside"
+        },
+        {
+          "node": "stroke-inside",
+          "label": "stroke inside"
+        },
+        {
+          "node": "stroke-center",
+          "label": "stroke center"
+        },
+        {
+          "node": "source",
+          "label": "source"
+        },
+        {
+          "node": "sobel",
+          "label": "sobel"
+        },
+        {
+          "node": "scharr",
+          "label": "scharr"
+        },
+        {
+          "node": "laplacian",
+          "label": "laplacian"
+        },
+        {
+          "node": "swirl-clockwise",
+          "label": "swirl clockwise"
+        },
+        {
+          "node": "swirl-counterclockwise",
+          "label": "swirl counterclockwise"
+        },
+        {
+          "node": "swirl-wrapped",
+          "label": "swirl wrapped"
+        },
+        {
+          "node": "polar-disk",
+          "label": "polar disk"
+        },
+        {
+          "node": "polar-strip",
+          "label": "polar strip"
+        },
+        {
+          "node": "islands",
+          "label": "islands"
+        },
+        {
+          "node": "regions",
+          "label": "regions"
+        },
+        {
+          "node": "region-colors",
+          "label": "region colors"
+        },
+        {
+          "node": "region-select",
+          "label": "region select"
+        },
+        {
+          "node": "region-area-visible",
+          "label": "region area visible"
+        },
+        {
+          "node": "reconstruct-source",
+          "label": "reconstruct source"
+        },
+        {
+          "node": "reconstruct-normal",
+          "label": "reconstruct normal"
+        },
+        {
+          "node": "reconstructed",
+          "label": "reconstructed"
+        }
+      ]
+    }
   }
 }

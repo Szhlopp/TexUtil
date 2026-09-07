@@ -184,3 +184,35 @@ Single measured runs with eight workers, including exports:
 | forest | 1024 | 3406.1 | 80.0 |
 
 Maximum relative height-sum change across the cumulative forest erosion stages: 3.20e-08, measured from the float PFM exports.
+
+## Native sheet outputs and snow
+
+All 14 Release CTest targets pass, including a dedicated native-sheet suite and the
+snow example. The portable-sample check validates 13 JSON graphs and checks matching
+example copies. New tests cover computed canvas dimensions, mixed scalar/normal/color
+encoding, independent sheet export defaults, repeated/shared sources, multiple sheets,
+sheet-only scheduling, area-filtered reductions, alpha composition, aspect-fit
+letterboxing, caption/title bounds, memory release across a ten-node chain, and
+invalid references/layouts/text/settings/output paths.
+
+The chain test renders ten 256-square scalar sources into a sheet under a 1 MiB
+budget and peaks below 0.6 MiB, demonstrating that sheet capture does not retain
+all full-resolution sources. PNG writing is exercised by native gallery and snow
+CTest renders. `git diff --check` passes, and generated maps, sheets and the new
+sheet-test executable are correctly ignored.
+
+The 2048-square snow material exports color, 16-bit height PNG, 32-bit float height,
+DirectX normals, diffuse preview and a native 2x2 sheet. The sheet and a 2x2 repeated
+lighting preview were visually inspected. Mean height discontinuity at the wrap
+boundary relative to ordinary neighboring pixels was 0.975 in X and 1.028 in Y,
+consistent with no unusual seam. This is a statistical seam check and visual review,
+not a guarantee that repetition is unrecognizable. The height range was approximately
+0.40055..0.60211. Its near-white albedo is intentionally subtle; the normal and
+lighting preview carry the visible powder relief.
+
+The measured 2048-square run with eight workers took 1527.1 ms including exports, with 271.3 MiB peak tracked image buffers (single local run).
+
+Five existing gallery graphs now declare native sheet outputs. The Python gallery
+helper only invokes the executable and saves timing reports; it no longer performs
+image assembly or requires Pillow. The forest gallery was regenerated at 1024 with
+the native output as an additional mixed data/color verification.

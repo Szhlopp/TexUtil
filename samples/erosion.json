@@ -223,6 +223,62 @@
     "time.pfm": {
       "node": "time",
       "bits": 32
+    },
+    "gallery.png": {
+      "type": "sheet",
+      "title": "erosion",
+      "columns": 4,
+      "cell": 224,
+      "items": [
+        {
+          "node": "before",
+          "label": "before"
+        },
+        {
+          "node": "wind",
+          "label": "wind"
+        },
+        {
+          "node": "rain",
+          "label": "rain"
+        },
+        {
+          "node": "time",
+          "label": "time"
+        },
+        {
+          "node": "before-normal",
+          "label": "before normal"
+        },
+        {
+          "node": "wind-normal",
+          "label": "wind normal"
+        },
+        {
+          "node": "rain-normal",
+          "label": "rain normal"
+        },
+        {
+          "node": "time-normal",
+          "label": "time normal"
+        },
+        {
+          "node": "before-color",
+          "label": "before color"
+        },
+        {
+          "node": "wind-color",
+          "label": "wind color"
+        },
+        {
+          "node": "rain-color",
+          "label": "rain color"
+        },
+        {
+          "node": "time-color",
+          "label": "time color"
+        }
+      ]
     }
   }
 }

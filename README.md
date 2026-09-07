@@ -210,11 +210,37 @@ Render all new features, all presets and an erosion comparison with:
 python3 tools/gallery.py
 ```
 
-This optional Pillow helper saves individual PNGs and labeled `gallery.png` sheets
+This optional Python batching helper invokes TexUtil to save individual PNGs and native labeled sheets
 under `out/nodes-gallery/`, `out/presets-gallery/`, `out/erosion/`,
-`out/effects-gallery/`, and `out/forest/`. Erosion also
+`out/effects-gallery/`, `out/forest/`, and `out/snow/`. No Pillow is required. Erosion also
 exports unclipped float PFM heights. Every graph is checked in under `examples/`;
 the C++ tool can render them directly without Python.
+
+## Labeled sheets and snow
+
+Outputs can combine multiple nodes into a native labeled graphic:
+
+```json
+"preview.png": {
+  "type":"sheet", "title":"Material maps", "columns":3, "cell":320,
+  "items":[
+    {"node":"color","label":"Color"},
+    {"node":"height","label":"Height"},
+    {"node":"normal","label":"Normal"}
+  ]
+}
+```
+
+Put this object inside `outputs` alongside individual map exports. Nodes can appear
+in several cells or sheets without recomputation. [Sheet outputs](docs/SHEETS.md)
+describes layout, text, color/data display, memory use and validation.
+
+[Snow](docs/SNOW.md) provides a tileable 2048-square material with color, 16-bit height,
+float height, DirectX normals, a lighting preview and a native contact sheet:
+
+```sh
+./build/texutil samples/snow.json --out out/snow
+```
 
 ## Effects, regions and conversion
 
@@ -224,7 +250,7 @@ the C++ tool can render them directly without Python.
 
 The [forest example](docs/FOREST.md) demonstrates stronger cumulative rain, wind
 and thermal settling, with a lush green palette and separate unlit albedo.
-[Portable samples](samples/README.md) contains 12 check-in-ready JSON graphs,
+[Portable samples](samples/README.md) contains 13 check-in-ready JSON graphs,
 including actual `terrain.json` and `forest.json` files:
 
 ```sh

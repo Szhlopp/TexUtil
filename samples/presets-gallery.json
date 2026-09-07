@@ -166,6 +166,86 @@
     "crystal.png": "crystal",
     "plasma.png": "plasma",
     "fluid.png": "fluid",
-    "liquid.png": "liquid"
+    "liquid.png": "liquid",
+    "gallery.png": {
+      "type": "sheet",
+      "title": "presets gallery",
+      "columns": 6,
+      "cell": 224,
+      "items": [
+        {
+          "node": "bnw_spots",
+          "label": "bnw_spots"
+        },
+        {
+          "node": "gaussian_spots",
+          "label": "gaussian_spots"
+        },
+        {
+          "node": "dirt",
+          "label": "dirt"
+        },
+        {
+          "node": "grunge",
+          "label": "grunge"
+        },
+        {
+          "node": "grunge_rust",
+          "label": "grunge_rust"
+        },
+        {
+          "node": "grunge_leaks",
+          "label": "grunge_leaks"
+        },
+        {
+          "node": "scratches",
+          "label": "scratches"
+        },
+        {
+          "node": "fibers",
+          "label": "fibers"
+        },
+        {
+          "node": "fur",
+          "label": "fur"
+        },
+        {
+          "node": "shavings",
+          "label": "shavings"
+        },
+        {
+          "node": "brick",
+          "label": "brick"
+        },
+        {
+          "node": "weave",
+          "label": "weave"
+        },
+        {
+          "node": "ornament",
+          "label": "ornament"
+        },
+        {
+          "node": "creased",
+          "label": "creased"
+        },
+        {
+          "node": "crystal",
+          "label": "crystal"
+        },
+        {
+          "node": "plasma",
+          "label": "plasma"
+        },
+        {
+          "node": "fluid",
+          "label": "fluid"
+        },
+        {
+          "node": "liquid",
+          "label": "liquid"
+        }
+      ]
+    }
   }
 }

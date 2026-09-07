@@ -535,6 +535,62 @@
       "node": "after-time",
       "bits": 32
     },
-    "forest-albedo.png": "after-time-albedo"
+    "forest-albedo.png": "after-time-albedo",
+    "gallery.png": {
+      "type": "sheet",
+      "title": "forest",
+      "columns": 4,
+      "cell": 224,
+      "items": [
+        {
+          "node": "before",
+          "label": "Original"
+        },
+        {
+          "node": "after-rain",
+          "label": "Rain"
+        },
+        {
+          "node": "after-wind",
+          "label": "Rain + wind"
+        },
+        {
+          "node": "after-time",
+          "label": "Rain + wind + time"
+        },
+        {
+          "node": "before-normal",
+          "label": "Original normal"
+        },
+        {
+          "node": "after-rain-normal",
+          "label": "Rain normal"
+        },
+        {
+          "node": "after-wind-normal",
+          "label": "Rain + wind normal"
+        },
+        {
+          "node": "after-time-normal",
+          "label": "Rain + wind + time normal"
+        },
+        {
+          "node": "before-forest",
+          "label": "Original forest"
+        },
+        {
+          "node": "after-rain-forest",
+          "label": "Rain forest"
+        },
+        {
+          "node": "after-wind-forest",
+          "label": "Rain + wind forest"
+        },
+        {
+          "node": "after-time-forest",
+          "label": "Rain + wind + time forest"
+        }
+      ]
+    }
   }
 }

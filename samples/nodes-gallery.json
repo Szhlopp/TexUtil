@@ -330,6 +330,158 @@
     "math-abs.png": "math-abs",
     "math-clamp.png": "math-clamp",
     "math-fract.png": "math-fract",
-    "math-quantize.png": "math-quantize"
+    "math-quantize.png": "math-quantize",
+    "gallery.png": {
+      "type": "sheet",
+      "title": "nodes gallery",
+      "columns": 4,
+      "cell": 224,
+      "items": [
+        {
+          "node": "polygon",
+          "label": "polygon"
+        },
+        {
+          "node": "star",
+          "label": "star"
+        },
+        {
+          "node": "capsule",
+          "label": "capsule"
+        },
+        {
+          "node": "gaussian",
+          "label": "gaussian"
+        },
+        {
+          "node": "gaussian-noise",
+          "label": "gaussian noise"
+        },
+        {
+          "node": "blue-noise",
+          "label": "blue noise"
+        },
+        {
+          "node": "anisotropic-clouds",
+          "label": "anisotropic clouds"
+        },
+        {
+          "node": "anisotropic-perlin",
+          "label": "anisotropic perlin"
+        },
+        {
+          "node": "anisotropic-value",
+          "label": "anisotropic value"
+        },
+        {
+          "node": "anisotropic-simplex",
+          "label": "anisotropic simplex"
+        },
+        {
+          "node": "anisotropic-white",
+          "label": "anisotropic white"
+        },
+        {
+          "node": "anisotropic-voronoi",
+          "label": "anisotropic voronoi"
+        },
+        {
+          "node": "scatter",
+          "label": "scatter"
+        },
+        {
+          "node": "controlled-array",
+          "label": "controlled array"
+        },
+        {
+          "node": "distance",
+          "label": "distance"
+        },
+        {
+          "node": "signed-distance",
+          "label": "signed distance"
+        },
+        {
+          "node": "bevel",
+          "label": "bevel"
+        },
+        {
+          "node": "bevel-normal",
+          "label": "bevel normal"
+        },
+        {
+          "node": "gaussian-blur",
+          "label": "gaussian blur"
+        },
+        {
+          "node": "directional-blur",
+          "label": "directional blur"
+        },
+        {
+          "node": "slope-average",
+          "label": "slope average"
+        },
+        {
+          "node": "slope-min",
+          "label": "slope min"
+        },
+        {
+          "node": "slope-max",
+          "label": "slope max"
+        },
+        {
+          "node": "auto-levels",
+          "label": "auto levels"
+        },
+        {
+          "node": "range-mask",
+          "label": "range mask"
+        },
+        {
+          "node": "math-add",
+          "label": "math add"
+        },
+        {
+          "node": "math-subtract",
+          "label": "math subtract"
+        },
+        {
+          "node": "math-multiply",
+          "label": "math multiply"
+        },
+        {
+          "node": "math-divide",
+          "label": "math divide"
+        },
+        {
+          "node": "math-min",
+          "label": "math min"
+        },
+        {
+          "node": "math-max",
+          "label": "math max"
+        },
+        {
+          "node": "math-pow",
+          "label": "math pow"
+        },
+        {
+          "node": "math-abs",
+          "label": "math abs"
+        },
+        {
+          "node": "math-clamp",
+          "label": "math clamp"
+        },
+        {
+          "node": "math-fract",
+          "label": "math fract"
+        },
+        {
+          "node": "math-quantize",
+          "label": "math quantize"
+        }
+      ]
+    }
   }
 }
