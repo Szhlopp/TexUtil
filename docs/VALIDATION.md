@@ -216,3 +216,27 @@ Five existing gallery graphs now declare native sheet outputs. The Python galler
 helper only invokes the executable and saves timing reports; it no longer performs
 image assembly or requires Pillow. The forest gallery was regenerated at 1024 with
 the native output as an additional mixed data/color verification.
+
+## MaterialX export
+
+All 15 Release CTest targets pass with the new MaterialX suite. The portable-sample
+check now covers 16 graphs. Export tests cover relative paths and XML escaping,
+color/data encoding, DirectX green inversion, OpenGL passthrough, displacement
+binding, all 42 shader inputs, constant-only materials, output ordering, callback
+payloads, and rejection of invalid types, references, collisions and parameters.
+
+The official MaterialX 1.38.10 Python SDK independently validated four test
+documents and six regenerated sample materials (stone, wood, snow, cork, glass and
+potion). Every texture filename resolved relative to its document, and the SDK
+generated GLSL source for each material with its standard color-management system.
+This validates shader graphs and shader generation, not GPU compilation or rendering.
+No Maya/Arnold import or sphere render has been tested yet.
+
+Reproduce the independent check in an environment with the MaterialX SDK installed:
+
+```sh
+python tools/validate_materialx.py build/materialx-test out/stone out/wood out/snow out/cork out/glass out/potion
+```
+
+The SDK was installed only in the ignored `build/materialx-venv` for development
+verification. It is not linked into TexUtil and is not a runtime requirement.

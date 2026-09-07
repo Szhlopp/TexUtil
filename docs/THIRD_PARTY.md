@@ -10,6 +10,7 @@ Their original license files must accompany redistribution where required.
 | JSON for Modern C++ | 3.12.0 archive, SHA-256 in CMakeLists.txt | MIT |
 | libpng | Installed development package (1.6.58 on development machine) | libpng license |
 | zlib | libpng dependency from platform | zlib license |
+| MaterialX input metadata / optional validation SDK | Standard Surface 1.0.1 in MaterialX 1.38.10; no runtime linkage | Apache-2.0 |
 
 Project sources and license texts:
 
@@ -19,5 +20,10 @@ Project sources and license texts:
 - [libpng license](http://www.libpng.org/pub/png/src/libpng-LICENSE.txt)
 - [zlib license](https://zlib.net/zlib_license.html)
 
-This is an engineering dependency inventory. No license has been selected for
-TexUtil's own source yet.
+MaterialX input names, types and defaults in `src/materialx_inputs.inc` and
+`docs/materialx-inputs.json` follow the [upstream Standard Surface definition](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.38.10/libraries/bxdf/standard_surface.mtlx).
+The exporter and XML writer are TexUtil code. The optional developer validation
+script uses the upstream SDK; distributing TexUtil does not require that SDK.
+The upstream [MaterialX license](licenses/MaterialX.txt) is retained with this metadata.
+
+TexUtil's own source uses the MIT license in [LICENSE](../LICENSE).

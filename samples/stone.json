@@ -16,6 +16,29 @@
     "stone-height.png": {"node": "height", "bits": 16},
     "stone-albedo.png": "albedo",
     "stone-normal.png": "normal",
-    "stone-roughness.png": "roughness"
+    "stone-roughness.png": "roughness",
+    "stone.mtlx": {
+      "type": "materialx",
+      "name": "Stone",
+      "inputs": {
+        "base_color": {
+          "texture": "stone-albedo.png"
+        },
+        "specular_roughness": {
+          "texture": "stone-roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5
+      },
+      "normal": {
+        "texture": "stone-normal.png",
+        "convention": "directx"
+      },
+      "displacement": {
+        "texture": "stone-height.png",
+        "scale": 0.035,
+        "midlevel": 0.5
+      }
+    }
   }
 }

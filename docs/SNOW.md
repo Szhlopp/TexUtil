@@ -9,6 +9,7 @@ snow material. A matching demonstration lives at [examples/snow.json](../example
 
 | Output | Purpose |
 | --- | --- |
+| `snow.mtlx` | Connected Standard Surface material; see [MaterialX export](MATERIALX.md). |
 | `snow-color.png` | Unlit sRGB albedo, pale white with subtle cold-blue variation. |
 | `snow-height.png` | Linear 16-bit grayscale height for displacement. |
 | `snow-height.pfm` | The same heightfield as unclipped 32-bit float. |

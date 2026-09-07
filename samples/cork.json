@@ -1,0 +1,380 @@
+{
+  "size": 2048,
+  "seed": 731,
+  "tile": true,
+  "nodes": {
+    "warp-x": {
+      "op": "clouds",
+      "scale": 28,
+      "octaves": 3,
+      "seed": 431
+    },
+    "warp-y": {
+      "op": "clouds",
+      "scale": 28,
+      "octaves": 3,
+      "seed": 932
+    },
+    "raw-flakes": {
+      "op": "voronoi",
+      "scale": 38,
+      "feature": "cells",
+      "seed": 731
+    },
+    "raw-seams": {
+      "op": "voronoi",
+      "scale": 38,
+      "feature": "edges",
+      "seed": 731
+    },
+    "flakes": {
+      "op": "warp",
+      "input": "raw-flakes",
+      "x": "warp-x",
+      "y": "warp-y",
+      "strength": 0.012,
+      "edge": "repeat"
+    },
+    "seams": {
+      "op": "warp",
+      "input": "raw-seams",
+      "x": "warp-x",
+      "y": "warp-y",
+      "strength": 0.012,
+      "edge": "repeat"
+    },
+    "small-flakes": {
+      "op": "voronoi",
+      "scale": 105,
+      "feature": "cells",
+      "seed": 212
+    },
+    "granules": {
+      "op": "clouds",
+      "scale": 150,
+      "octaves": 3,
+      "gain": 0.4,
+      "seed": 829
+    },
+    "mottle": {
+      "op": "clouds",
+      "scale": 12,
+      "octaves": 4,
+      "gain": 0.45,
+      "seed": 893
+    },
+    "flake-tone": {
+      "op": "blend",
+      "a": "flakes",
+      "b": "small-flakes",
+      "mode": "mix",
+      "opacity": 0.23
+    },
+    "surface-tone": {
+      "op": "blend",
+      "a": "flake-tone",
+      "b": "granules",
+      "mode": "mix",
+      "opacity": 0.16
+    },
+    "open-seams": {
+      "op": "range_mask",
+      "input": "seams",
+      "range": [
+        0,
+        0.012
+      ],
+      "softness": 0.018
+    },
+    "seam-breakup": {
+      "op": "levels",
+      "input": "granules",
+      "in": [
+        0.3,
+        0.65
+      ]
+    },
+    "fissures": {
+      "op": "blend",
+      "a": "open-seams",
+      "b": "seam-breakup",
+      "mode": "multiply"
+    },
+    "pore-field": {
+      "op": "clouds",
+      "scale": 85,
+      "octaves": 3,
+      "gain": 0.5,
+      "seed": 319,
+      "stretch": [
+        1,
+        1.4
+      ]
+    },
+    "pores": {
+      "op": "range_mask",
+      "input": "pore-field",
+      "range": [
+        0,
+        0.26
+      ],
+      "softness": 0.055
+    },
+    "cavities": {
+      "op": "blend",
+      "a": "fissures",
+      "b": "pores",
+      "mode": "max"
+    },
+    "flake-height": {
+      "op": "levels",
+      "input": "surface-tone",
+      "out": [
+        0.46,
+        0.56
+      ]
+    },
+    "grain-relief": {
+      "op": "levels",
+      "input": "granules",
+      "out": [
+        -0.018,
+        0.018
+      ]
+    },
+    "grain-height": {
+      "op": "math",
+      "input": "flake-height",
+      "b": "grain-relief",
+      "mode": "add"
+    },
+    "pore-depth": {
+      "op": "levels",
+      "input": "cavities",
+      "out": [
+        0,
+        0.14
+      ]
+    },
+    "height-sharp": {
+      "op": "math",
+      "input": "grain-height",
+      "b": "pore-depth",
+      "mode": "subtract"
+    },
+    "height": {
+      "op": "gaussian_blur",
+      "input": "height-sharp",
+      "sigma": 0.65,
+      "edge": "repeat"
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.018,
+      "convention": "directx",
+      "edge": "repeat"
+    },
+    "cork-tone": {
+      "op": "ramp",
+      "input": "surface-tone",
+      "stops": [
+        [
+          0,
+          "#714222"
+        ],
+        [
+          0.22,
+          "#9f693a"
+        ],
+        [
+          0.45,
+          "#ba8850"
+        ],
+        [
+          0.7,
+          "#d1a16a"
+        ],
+        [
+          1,
+          "#e1bb87"
+        ]
+      ]
+    },
+    "warm-variation": {
+      "op": "ramp",
+      "input": "mottle",
+      "stops": [
+        [
+          0,
+          "#b2916d"
+        ],
+        [
+          0.5,
+          "#ebd8bb"
+        ],
+        [
+          1,
+          "#ffffff"
+        ]
+      ]
+    },
+    "varied-cork": {
+      "op": "blend",
+      "a": "cork-tone",
+      "b": "warm-variation",
+      "mode": "multiply",
+      "opacity": 0.4
+    },
+    "pore-brown": {
+      "op": "constant",
+      "value": "#513019"
+    },
+    "color": {
+      "op": "blend",
+      "a": "varied-cork",
+      "b": "pore-brown",
+      "mode": "mix",
+      "mask": "cavities",
+      "opacity": 0.78
+    },
+    "roughness-base": {
+      "op": "levels",
+      "input": "granules",
+      "out": [
+        0.72,
+        0.91
+      ]
+    },
+    "pore-roughness": {
+      "op": "constant",
+      "value": 0.97
+    },
+    "roughness": {
+      "op": "blend",
+      "a": "roughness-base",
+      "b": "pore-roughness",
+      "mask": "cavities",
+      "mode": "mix"
+    },
+    "normal-centered": {
+      "op": "math",
+      "input": "normal",
+      "mode": "subtract",
+      "value": 0.5
+    },
+    "normal-decoded": {
+      "op": "math",
+      "input": "normal-centered",
+      "mode": "multiply",
+      "value": 2
+    },
+    "light-vector": {
+      "op": "constant",
+      "value": [
+        -2.114010124623848,
+        -0.5585863192829109,
+        11.06650791000382
+      ]
+    },
+    "light-components": {
+      "op": "math",
+      "input": "normal-decoded",
+      "b": "light-vector",
+      "mode": "multiply"
+    },
+    "lambert": {
+      "op": "grayscale",
+      "input": "light-components"
+    },
+    "diffuse": {
+      "op": "math",
+      "input": "lambert",
+      "mode": "clamp",
+      "range": [
+        0,
+        1
+      ]
+    },
+    "diffuse-strength": {
+      "op": "math",
+      "input": "diffuse",
+      "mode": "multiply",
+      "value": 0.8
+    },
+    "lighting": {
+      "op": "math",
+      "input": "diffuse-strength",
+      "mode": "add",
+      "value": 0.28
+    },
+    "lit-preview": {
+      "op": "blend",
+      "a": "color",
+      "b": "lighting",
+      "mode": "multiply"
+    }
+  },
+  "outputs": {
+    "cork-color.png": "color",
+    "cork-height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "cork-height.pfm": {
+      "node": "height",
+      "bits": 32
+    },
+    "cork-normal.png": "normal",
+    "cork-roughness.png": "roughness",
+    "cork-lit.png": "lit-preview",
+    "cork-sheet.png": {
+      "type": "sheet",
+      "title": "Cork / natural pressed granules",
+      "columns": 2,
+      "cell": 448,
+      "padding": 18,
+      "items": [
+        {
+          "node": "lit-preview",
+          "label": "Lit material preview"
+        },
+        {
+          "node": "color",
+          "label": "Color / unlit albedo"
+        },
+        {
+          "node": "height",
+          "label": "Height / 16-bit export"
+        },
+        {
+          "node": "normal",
+          "label": "Normal / DirectX"
+        }
+      ]
+    },
+    "cork.mtlx": {
+      "type": "materialx",
+      "name": "Cork",
+      "inputs": {
+        "base_color": {
+          "texture": "cork-color.png"
+        },
+        "specular_roughness": {
+          "texture": "cork-roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5
+      },
+      "normal": {
+        "texture": "cork-normal.png",
+        "convention": "directx"
+      },
+      "displacement": {
+        "texture": "cork-height.png",
+        "scale": 0.018,
+        "midlevel": 0.5
+      }
+    }
+  }
+}

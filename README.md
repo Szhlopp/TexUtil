@@ -242,6 +242,22 @@ float height, DirectX normals, a lighting preview and a native contact sheet:
 ./build/texutil samples/snow.json --out out/snow
 ```
 
+## MaterialX materials
+
+Stone, wood, snow, cork, glass and potion samples also export `.mtlx` materials with
+their PNG maps connected. [MaterialX export](docs/MATERIALX.md) supports all 42
+Standard Surface inputs, including colors, IOR, transmission, coat, subsurface and
+emission. Values can be constants or exported texture bindings. Relative paths,
+color spaces, DirectX normal conversion and optional displacement are handled for you.
+
+```sh
+./build/texutil samples/potion.json --out out/potion
+./build/texutil materialx --json
+```
+
+Copy the `.mtlx` and referenced PNGs together for use in Maya LookdevX or another
+compatible host. Exporting adds no GPU, Python or MaterialX runtime dependency.
+
 ## Effects, regions and conversion
 
 [Effects](docs/EFFECTS.md) covers `glow`, `stroke`, `edge_detect`, `swirl`, and `polar`.
@@ -250,7 +266,7 @@ float height, DirectX normals, a lighting preview and a native contact sheet:
 
 The [forest example](docs/FOREST.md) demonstrates stronger cumulative rain, wind
 and thermal settling, with a lush green palette and separate unlit albedo.
-[Portable samples](samples/README.md) contains 13 check-in-ready JSON graphs,
+[Portable samples](samples/README.md) contains 16 check-in-ready JSON graphs,
 including actual `terrain.json` and `forest.json` files:
 
 ```sh

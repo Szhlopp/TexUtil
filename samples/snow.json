@@ -251,6 +251,35 @@
           "label": "Normal / DirectX"
         }
       ]
+    },
+    "snow.mtlx": {
+      "type": "materialx",
+      "name": "Snow",
+      "inputs": {
+        "base_color": {
+          "texture": "snow-color.png"
+        },
+        "specular_roughness": 0.8,
+        "metalness": 0,
+        "specular_IOR": 1.31,
+        "subsurface": 0.15,
+        "subsurface_color": "#f0f7ff",
+        "subsurface_radius": [
+          0.8,
+          1,
+          1.2
+        ],
+        "subsurface_scale": 0.015
+      },
+      "normal": {
+        "texture": "snow-normal.png",
+        "convention": "directx"
+      },
+      "displacement": {
+        "texture": "snow-height.png",
+        "scale": 0.08,
+        "midlevel": 0.5
+      }
     }
   }
 }

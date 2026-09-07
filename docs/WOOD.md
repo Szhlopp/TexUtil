@@ -7,7 +7,8 @@ Render the included wood recipe:
 ./build/texutil examples/wood.json --out out/wood-large --size 2048 --seed 92
 ```
 
-The graph exports color, 16-bit height, DirectX normals and roughness. The default
+The graph exports color, 16-bit height, DirectX normals, roughness and a connected
+`wood.mtlx` [MaterialX material](MATERIALX.md). The default
 size is 1024. It is a procedural, stylized wood example with explicit knot positions;
 it is not a scanned material and it does not tile seamlessly. Changing the seed
 changes the grain variation, while knot positions remain controlled by the recipe.

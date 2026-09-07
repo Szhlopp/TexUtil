@@ -32,6 +32,29 @@
     "wood-color.png": "color",
     "wood-height.png": {"node": "height", "bits": 16},
     "wood-normal.png": "normal",
-    "wood-roughness.png": "roughness"
+    "wood-roughness.png": "roughness",
+    "wood.mtlx": {
+      "type": "materialx",
+      "name": "Wood",
+      "inputs": {
+        "base_color": {
+          "texture": "wood-color.png"
+        },
+        "specular_roughness": {
+          "texture": "wood-roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5
+      },
+      "normal": {
+        "texture": "wood-normal.png",
+        "convention": "directx"
+      },
+      "displacement": {
+        "texture": "wood-height.png",
+        "scale": 0.002,
+        "midlevel": 0.5
+      }
+    }
   }
 }

@@ -1,0 +1,288 @@
+{
+  "size": 2048,
+  "seed": 441,
+  "tile": true,
+  "nodes": {
+    "scratch-tip": {
+      "op": "shape",
+      "type": "capsule",
+      "size": [
+        0.95,
+        0.95
+      ],
+      "softness": 0.3
+    },
+    "fine-scratches": {
+      "op": "scatter",
+      "input": "scratch-tip",
+      "count": 110,
+      "size": [
+        0.065,
+        0.0011
+      ],
+      "size_jitter": 0.65,
+      "angle": 25,
+      "rotation_jitter": 75,
+      "value_range": [
+        0.15,
+        0.65
+      ],
+      "wrap": true,
+      "seed": 441
+    },
+    "long-scratches": {
+      "op": "scatter",
+      "input": "scratch-tip",
+      "count": 18,
+      "size": [
+        0.17,
+        0.00085
+      ],
+      "size_jitter": 0.5,
+      "angle": -35,
+      "rotation_jitter": 35,
+      "value_range": [
+        0.12,
+        0.4
+      ],
+      "wrap": true,
+      "seed": 892
+    },
+    "all-scratches": {
+      "op": "blend",
+      "a": "fine-scratches",
+      "b": "long-scratches",
+      "mode": "max"
+    },
+    "wear": {
+      "op": "clouds",
+      "scale": 60,
+      "octaves": 3,
+      "gain": 0.4,
+      "seed": 928
+    },
+    "scratch-variation": {
+      "op": "levels",
+      "input": "wear",
+      "out": [
+        0.45,
+        1
+      ]
+    },
+    "scratches": {
+      "op": "blend",
+      "a": "all-scratches",
+      "b": "scratch-variation",
+      "mode": "multiply"
+    },
+    "soft-scratches": {
+      "op": "gaussian_blur",
+      "input": "scratches",
+      "sigma": 0.45,
+      "edge": "repeat"
+    },
+    "height": {
+      "op": "levels",
+      "input": "soft-scratches",
+      "out": [
+        0.5,
+        0.488
+      ]
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.025,
+      "convention": "directx",
+      "edge": "repeat"
+    },
+    "base-roughness": {
+      "op": "constant",
+      "value": 0.025
+    },
+    "scratch-roughness": {
+      "op": "levels",
+      "input": "soft-scratches",
+      "out": [
+        0,
+        0.4
+      ]
+    },
+    "roughness": {
+      "op": "math",
+      "input": "base-roughness",
+      "b": "scratch-roughness",
+      "mode": "add"
+    },
+    "color": {
+      "op": "constant",
+      "value": "#f5fcfa"
+    },
+    "transmission": {
+      "op": "constant",
+      "value": 1
+    },
+    "studio-gradient": {
+      "op": "gradient",
+      "type": "linear",
+      "angle": 120
+    },
+    "studio-background": {
+      "op": "ramp",
+      "input": "studio-gradient",
+      "stops": [
+        [
+          0,
+          "#132129"
+        ],
+        [
+          0.5,
+          "#3d5863"
+        ],
+        [
+          1,
+          "#8babb2"
+        ]
+      ]
+    },
+    "softbox": {
+      "op": "shape",
+      "type": "box",
+      "center": [
+        0.38,
+        0.38
+      ],
+      "size": [
+        0.16,
+        1.6
+      ],
+      "angle": 32,
+      "softness": 0.6
+    },
+    "softbox-wide": {
+      "op": "gaussian_blur",
+      "input": "softbox",
+      "sigma": 28,
+      "edge": "clamp"
+    },
+    "reflection-tone": {
+      "op": "constant",
+      "value": "#d8e9ec"
+    },
+    "reflected-studio": {
+      "op": "blend",
+      "a": "studio-background",
+      "b": "reflection-tone",
+      "mask": "softbox-wide",
+      "mode": "mix",
+      "opacity": 0.55
+    },
+    "reflection-fringe": {
+      "op": "gaussian_blur",
+      "input": "soft-scratches",
+      "sigma": 2,
+      "edge": "repeat"
+    },
+    "scratch-glints": {
+      "op": "blend",
+      "a": "soft-scratches",
+      "b": "reflection-fringe",
+      "mode": "add",
+      "opacity": 0.25
+    },
+    "studio-preview": {
+      "op": "blend",
+      "a": "reflected-studio",
+      "b": "reflection-tone",
+      "mask": "scratch-glints",
+      "mode": "mix",
+      "opacity": 0.8
+    },
+    "scratch-inspection": {
+      "op": "levels",
+      "input": "soft-scratches",
+      "in": [
+        0,
+        0.3
+      ]
+    }
+  },
+  "outputs": {
+    "glass-color.png": "color",
+    "glass-height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "glass-height.pfm": {
+      "node": "height",
+      "bits": 32
+    },
+    "glass-normal.png": {
+      "node": "normal",
+      "bits": 16
+    },
+    "glass-roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "glass-transmission.png": "transmission",
+    "glass-scratches.png": "soft-scratches",
+    "glass-preview.png": "studio-preview",
+    "glass-sheet.png": {
+      "type": "sheet",
+      "title": "Glass / gentle surface scratches",
+      "columns": 2,
+      "cell": 448,
+      "padding": 18,
+      "items": [
+        {
+          "node": "studio-preview",
+          "label": "Illustrative studio preview"
+        },
+        {
+          "node": "scratch-inspection",
+          "label": "Scratch mask / contrast boosted"
+        },
+        {
+          "node": "roughness",
+          "label": "Roughness / linear"
+        },
+        {
+          "node": "normal",
+          "label": "Normal / DirectX"
+        }
+      ]
+    },
+    "glass.mtlx": {
+      "type": "materialx",
+      "name": "Glass",
+      "inputs": {
+        "base_color": {
+          "texture": "glass-color.png"
+        },
+        "specular_roughness": {
+          "texture": "glass-roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5,
+        "base": 0,
+        "transmission": {
+          "texture": "glass-transmission.png"
+        },
+        "transmission_color": {
+          "texture": "glass-color.png"
+        },
+        "thin_walled": true
+      },
+      "normal": {
+        "texture": "glass-normal.png",
+        "convention": "directx"
+      },
+      "displacement": {
+        "texture": "glass-height.png",
+        "scale": 0.025,
+        "midlevel": 0.5
+      }
+    }
+  }
+}

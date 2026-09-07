@@ -12,6 +12,9 @@ ignored along with build products.
 
 | Sample | What it produces |
 | --- | --- |
+| `potion.json` | Ruby-red health potion with flowing ribbons, bubbles, liquid maps and a labeled preview. See [controls](../docs/POTION.md). |
+| `glass.json` | Gently scratched glass color, height, normals, roughness, transmission and an illustrative preview. See [controls](../docs/GLASS.md). |
+| `cork.json` | Tileable pressed cork color, height, normals, roughness and a native labeled sheet. See [controls](../docs/CORK.md). |
 | `snow.json` | Tileable snow albedo, height, normals, lighting preview and a native labeled sheet. |
 | `terrain.json` | Compact cumulative rain, wind and thermal terrain; 16-bit PNG, float PFM, normals. |
 | `forest.json` | Lush forest comparison before/after sequential erosion, plus unlit albedo. |
@@ -37,5 +40,9 @@ CLI `--size` overrides the saved resolution. Simulation iterations, pixel distan
 and noise frequencies still need tuning for another resolution. See the large
 texture notes in the project README before attempting a 16384-square erosion job.
 
-The five gallery/comparison samples and `snow.json` include native `type:sheet` outputs.
+The five gallery/comparison samples, `snow.json`, `cork.json`, `glass.json` and `potion.json` include native `type:sheet` outputs.
 They render their labeled graphics directly with TexUtil; no Pillow step is needed.
+
+`stone.json`, `wood.json`, `snow.json`, `cork.json`, `glass.json` and `potion.json`
+also emit MaterialX materials. See [MaterialX export](../docs/MATERIALX.md) for
+custom shader parameters and Maya usage. Copy each `.mtlx` with its referenced PNGs.

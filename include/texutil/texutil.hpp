@@ -95,10 +95,17 @@ void drawSheetItem(Image& canvas, const Sheet& sheet, size_t index, const Image&
 struct Output {
     std::string name, node, format;
     std::optional<Sheet> sheet;
+    std::optional<Json> material;
+    std::string text; // MaterialX XML; render callbacks receive a null image for this output.
     int bits = 8;
     bool alpha = false;
     bool srgb = true;
 };
+Json materialXInputs();
+Json parseMaterialX(const Json& output);
+void validateMaterialXReferences(const std::vector<Output>& outputs);
+void validateMaterialXImage(const std::vector<Output>& outputs, const Output& output, Kind kind);
+std::string materialXDocument(const Output& output, const std::vector<Output>& outputs, const std::map<std::string, Kind>& kinds, bool tile);
 struct Context {
     int width, height, seed;
     bool tile;

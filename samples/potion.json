@@ -1,0 +1,409 @@
+{
+  "size": 2048,
+  "seed": 741,
+  "tile": true,
+  "nodes": {
+    "flow-base": {
+      "op": "clouds",
+      "scale": 5,
+      "stretch": [
+        1,
+        3.8
+      ],
+      "octaves": 4,
+      "gain": 0.38,
+      "seed": 741
+    },
+    "flow-x": {
+      "op": "clouds",
+      "scale": 3,
+      "octaves": 3,
+      "seed": 192
+    },
+    "flow-y": {
+      "op": "clouds",
+      "scale": 4,
+      "octaves": 3,
+      "seed": 863
+    },
+    "flow-warp": {
+      "op": "warp",
+      "input": "flow-base",
+      "x": "flow-x",
+      "y": "flow-y",
+      "strength": 0.16,
+      "edge": "repeat"
+    },
+    "main-swirl": {
+      "op": "swirl",
+      "input": "flow-warp",
+      "center": [
+        0.48,
+        0.52
+      ],
+      "radius": 0.5,
+      "angle": 420,
+      "falloff": 1.6,
+      "wrap": true,
+      "edge": "repeat"
+    },
+    "flow": {
+      "op": "swirl",
+      "input": "main-swirl",
+      "center": [
+        0.91,
+        0.08
+      ],
+      "radius": 0.3,
+      "angle": -220,
+      "falloff": 2,
+      "wrap": true,
+      "edge": "repeat"
+    },
+    "ruby": {
+      "op": "ramp",
+      "input": "flow",
+      "stops": [
+        [
+          0.18,
+          "#240009"
+        ],
+        [
+          0.32,
+          "#54000c"
+        ],
+        [
+          0.45,
+          "#930012"
+        ],
+        [
+          0.56,
+          "#d50522"
+        ],
+        [
+          0.67,
+          "#ed1935"
+        ],
+        [
+          0.82,
+          "#fa3b4e"
+        ]
+      ]
+    },
+    "silk-ribbons": {
+      "op": "range_mask",
+      "input": "flow",
+      "range": [
+        0.545,
+        0.555
+      ],
+      "softness": 0.02
+    },
+    "ribbon-tint": {
+      "op": "constant",
+      "value": "#f51e38"
+    },
+    "color": {
+      "op": "blend",
+      "a": "ruby",
+      "b": "ribbon-tint",
+      "mask": "silk-ribbons",
+      "mode": "mix",
+      "opacity": 0.18
+    },
+    "ripple-height": {
+      "op": "levels",
+      "input": "flow",
+      "in": [
+        0.2,
+        0.8
+      ],
+      "out": [
+        0.492,
+        0.508
+      ]
+    },
+    "bubble-dome": {
+      "op": "shape",
+      "type": "gaussian",
+      "size": 0.9,
+      "sigma": 0.5
+    },
+    "bubble-rim": {
+      "op": "shape",
+      "type": "ring",
+      "size": 0.9,
+      "thickness": 0.09,
+      "softness": 0.035
+    },
+    "bubble-light-direction": {
+      "op": "gradient",
+      "type": "linear",
+      "angle": 45,
+      "reverse": true
+    },
+    "bubble-lit-rim": {
+      "op": "blend",
+      "a": "bubble-rim",
+      "b": "bubble-light-direction",
+      "mode": "multiply"
+    },
+    "bubbles": {
+      "op": "scatter",
+      "input": "bubble-dome",
+      "count": 32,
+      "size": 0.038,
+      "size_jitter": 0.72,
+      "value_range": [
+        0.5,
+        1
+      ],
+      "wrap": true,
+      "seed": 349
+    },
+    "bubble-rims": {
+      "op": "scatter",
+      "input": "bubble-lit-rim",
+      "count": 32,
+      "size": 0.038,
+      "size_jitter": 0.72,
+      "value_range": [
+        0.5,
+        1
+      ],
+      "wrap": true,
+      "seed": 349
+    },
+    "bubble-height": {
+      "op": "levels",
+      "input": "bubbles",
+      "out": [
+        0,
+        0.025
+      ]
+    },
+    "height": {
+      "op": "math",
+      "input": "ripple-height",
+      "b": "bubble-height",
+      "mode": "add"
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.035,
+      "convention": "directx",
+      "edge": "repeat"
+    },
+    "roughness": {
+      "op": "levels",
+      "input": "flow",
+      "out": [
+        0.055,
+        0.11
+      ]
+    },
+    "transmission": {
+      "op": "constant",
+      "value": 0.92
+    },
+    "emission-mask": {
+      "op": "levels",
+      "input": "silk-ribbons",
+      "out": [
+        0,
+        0.12
+      ]
+    },
+    "emission": {
+      "op": "blend",
+      "a": "color",
+      "b": "emission-mask",
+      "mode": "multiply"
+    },
+    "normal-centered": {
+      "op": "math",
+      "input": "normal",
+      "mode": "subtract",
+      "value": 0.5
+    },
+    "normal-decoded": {
+      "op": "math",
+      "input": "normal-centered",
+      "mode": "multiply",
+      "value": 2
+    },
+    "highlight-vector": {
+      "op": "constant",
+      "value": [
+        -0.8466112930771035,
+        -0.33555100840453433,
+        13.21253009436868
+      ]
+    },
+    "highlight-components": {
+      "op": "math",
+      "input": "normal-decoded",
+      "b": "highlight-vector",
+      "mode": "multiply"
+    },
+    "highlight-dot": {
+      "op": "grayscale",
+      "input": "highlight-components"
+    },
+    "highlight-clamped": {
+      "op": "math",
+      "input": "highlight-dot",
+      "mode": "clamp",
+      "range": [
+        0,
+        1
+      ]
+    },
+    "specular": {
+      "op": "math",
+      "input": "highlight-window",
+      "mode": "pow",
+      "value": 6
+    },
+    "specular-tint": {
+      "op": "constant",
+      "value": "#fff2ec"
+    },
+    "specular-color": {
+      "op": "blend",
+      "a": "specular-tint",
+      "b": "specular",
+      "mode": "multiply"
+    },
+    "surface-lit": {
+      "op": "blend",
+      "a": "color",
+      "b": "specular-color",
+      "mode": "add",
+      "opacity": 0.65
+    },
+    "bubble-glints": {
+      "op": "blend",
+      "a": "specular-tint",
+      "b": "bubble-rims",
+      "mode": "multiply"
+    },
+    "bubble-lit": {
+      "op": "blend",
+      "a": "surface-lit",
+      "b": "bubble-glints",
+      "mode": "add",
+      "opacity": 0.65
+    },
+    "brew-preview": {
+      "op": "blend",
+      "a": "bubble-lit",
+      "b": "emission",
+      "mode": "add",
+      "opacity": 0.3
+    },
+    "height-inspection": {
+      "op": "levels",
+      "input": "height",
+      "in": [
+        0.49,
+        0.525
+      ]
+    },
+    "highlight-window": {
+      "op": "levels",
+      "input": "highlight-clamped",
+      "in": [
+        0.955,
+        0.999
+      ]
+    }
+  },
+  "outputs": {
+    "potion-color.png": "color",
+    "potion-height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "potion-height.pfm": {
+      "node": "height",
+      "bits": 32
+    },
+    "potion-normal.png": {
+      "node": "normal",
+      "bits": 16
+    },
+    "potion-roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "potion-transmission.png": "transmission",
+    "potion-emission.png": {
+      "node": "emission",
+      "bits": 16
+    },
+    "potion-bubbles.png": "bubbles",
+    "potion-preview.png": "brew-preview",
+    "potion-sheet.png": {
+      "type": "sheet",
+      "title": "Health potion / ruby-red brew",
+      "columns": 2,
+      "cell": 448,
+      "padding": 18,
+      "items": [
+        {
+          "node": "brew-preview",
+          "label": "Illustrative liquid surface"
+        },
+        {
+          "node": "color",
+          "label": "Ruby color / unlit"
+        },
+        {
+          "node": "height-inspection",
+          "label": "Height / contrast boosted"
+        },
+        {
+          "node": "normal",
+          "label": "Normal / DirectX"
+        }
+      ]
+    },
+    "potion.mtlx": {
+      "type": "materialx",
+      "name": "Potion",
+      "inputs": {
+        "base_color": {
+          "texture": "potion-color.png"
+        },
+        "specular_roughness": {
+          "texture": "potion-roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.33,
+        "transmission": {
+          "texture": "potion-transmission.png"
+        },
+        "transmission_color": {
+          "texture": "potion-color.png"
+        },
+        "transmission_depth": 0.1,
+        "emission": 0.15,
+        "emission_color": {
+          "texture": "potion-emission.png"
+        },
+        "thin_walled": false
+      },
+      "normal": {
+        "texture": "potion-normal.png",
+        "convention": "directx"
+      },
+      "displacement": {
+        "texture": "potion-height.png",
+        "scale": 0.035,
+        "midlevel": 0.5
+      }
+    }
+  }
+}

@@ -14,12 +14,14 @@ void help() {
   texutil validate material.json [--size N|WxH] [--seed N] [--json]
   texutil nodes [--json]
   texutil presets [--json]
+  texutil materialx [--json]       # Standard Surface input types and defaults
   texutil describe NODE
 
 A file of '-' reads JSON from stdin; image paths then use the current directory.
 Render --json prints machine-readable statistics. --stats prints node timings.
 Defaults: output in current directory, up to 16 CPU threads, 1024 MB float buffers.
 PNG (8/16-bit), PPM, PGM, PFM outputs. Native labeled sheets: output type "sheet".
+MaterialX materials: output type "materialx". See docs/MATERIALX.md.
 See README.md, docs/NODES.md and docs/SHEETS.md.
 )";
 }
@@ -36,7 +38,7 @@ int main(int argc, char** argv) {
         if (std::string(argv[1]) == "--version") { std::cout << "texutil 0.1.0\n"; return 0; }
         std::string command = "render", filename, node;
         int position = 1; std::string first = argv[position];
-        if (first == "render" || first == "validate" || first == "nodes" || first == "describe" || first == "presets") { command = first; ++position; }
+        if (first == "render" || first == "validate" || first == "nodes" || first == "describe" || first == "presets" || first == "materialx") { command = first; ++position; }
         if (command == "render" || command == "validate") { if (position >= argc) throw std::runtime_error("missing JSON file"); filename = argv[position++]; }
         if (command == "describe") { if (position >= argc) throw std::runtime_error("missing node operation"); node = argv[position++]; }
         tex::Options options; bool json = false, stats = false;
@@ -58,6 +60,7 @@ int main(int argc, char** argv) {
                 options.height = split == std::string::npos ? options.width : static_cast<int>(integer(value.substr(split + 1), 1, 16384, arg));
             }
         }
+        if (command == "materialx") { std::cout << tex::materialXInputs().dump(2) << '\n'; return 0; }
         if (command == "presets") {
             auto names = tex::presetNames(); if (json) std::cout << names.dump(2) << '\n'; else for (const auto& name : names) std::cout << name.get<std::string>() << '\n'; return 0;
         }

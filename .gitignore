@@ -24,6 +24,7 @@
 /texutil_tests
 /texutil_advanced_tests
 /texutil_sheet_tests
+/texutil_materialx_tests
 
 # Compiled C/C++ artifacts.
 *.o
