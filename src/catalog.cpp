@@ -107,6 +107,7 @@ Json catalog() {
     radial["sweep"] = number(360, -36000, 36000, "Angular sweep; excludes its endpoint.");
     radial["orient"] = field("boolean", true, "Rotate stamps with their radial placement angle.");
     add("radial", "Radial array of source stamps.", radial);
+    addAdvancedCatalog(result);
     return result;
 }
 
@@ -136,6 +137,8 @@ Json normalizedNode(const std::string& id, const Json& node) {
         } else if (t == "boolean") require(v.is_boolean(), error);
         else if (t == "reference" || t == "string") require(v.is_string() && !v.get<std::string>().empty(), error);
         else if (t == "array") require(v.is_array(), error);
+        else if (t == "object") require(v.is_object(), error);
+        else if (t == "references") { require(v.is_array() && v.size() <= 64, error); for (const auto& r : v) require(r.is_string() && !r.get<std::string>().empty(), error); }
         else if (t == "color") { try { color(v); } catch (...) { throw std::runtime_error(error); } }
         else if (t == "pair" || t == "positive_pair" || t == "count_pair") {
             Json pair = v;
@@ -153,8 +156,14 @@ Json normalizedNode(const std::string& id, const Json& node) {
     }
     // Normalize defaults that accept either a scalar or a pair.
     for (auto it = params.begin(); it != params.end(); ++it) if (it.value()["type"] == "positive_pair" && out.contains(it.key()) && out[it.key()].is_number()) out[it.key()] = Json::array({out[it.key()], out[it.key()]});
+    if ((op == "math" || op == "auto_levels" || op == "range_mask") && out.contains("range")) require(out["range"][0].get<float>() <= out["range"][1].get<float>(), prefix + "range must increase");
+    if (out.contains("value_range")) require(out["value_range"][0].get<float>() >= 0 && out["value_range"][0].get<float>() <= out["value_range"][1].get<float>() && out["value_range"][1].get<float>() <= 1, prefix + "value_range must increase within 0..1");
     if (op == "levels") require(out["in"][0].get<float>() < out["in"][1].get<float>(), prefix + "input range must increase at float precision");
-    if (out.contains("fractal") && out["fractal"] != "none") require(out["scale"].get<double>() * std::pow(out["lacunarity"].get<double>(), out["octaves"].get<int>() - 1) <= 10000000, prefix + "combined octave frequency exceeds 10000000");
+    if (out.contains("fractal")) {
+        double frequency = out["scale"].get<double>() / std::min(out["stretch"][0].get<double>(), out["stretch"][1].get<double>());
+        if (out["fractal"] != "none") frequency *= std::pow(out["lacunarity"].get<double>(), out["octaves"].get<int>() - 1);
+        require(frequency <= 10000000, prefix + "combined octave frequency including stretch exceeds 10000000");
+    }
     if (op == "ramp") {
         require(out["stops"].size() >= 2 && out["stops"].size() <= 1024, prefix + "requires 2..1024 stops");
         float previous = -INFINITY;
@@ -177,8 +186,8 @@ Json normalizedNode(const std::string& id, const Json& node) {
             p = {{"position", v["offset"]}, {"size", v["scale"]}, {"angle", v["angle"]}, {"opacity", b["opacity"]}};
         }
     }
-    if ((op == "stamp" || op == "array" || op == "radial") && out["wrap"].get<bool>()) {
-        auto check = [&](const Json& size) { require(size[0].get<float>() <= 1 && size[1].get<float>() <= 1, prefix + "wrapped stamps require size <= 1"); };
+    if ((op == "stamp" || op == "array" || op == "radial" || op == "scatter") && out["wrap"].get<bool>()) {
+        auto check = [&](const Json& size) { require(size[0].get<float>() * (1 + out.value("size_jitter", 0.0f)) <= 1 && size[1].get<float>() * (1 + out.value("size_jitter", 0.0f)) <= 1, prefix + "wrapped stamps require size <= 1"); };
         check(out["size"]);
         if (op == "stamp") for (auto& p : out["points"]) check(p["size"]);
     }
@@ -188,6 +197,7 @@ std::vector<std::string> dependencies(const Json& node) {
     static const Json specs = catalog();
     std::set<std::string> unique;
     for (auto it = specs[node["op"].get<std::string>()]["parameters"].begin(); it != specs[node["op"].get<std::string>()]["parameters"].end(); ++it) if (it.value()["type"] == "reference" && node.contains(it.key())) unique.insert(node[it.key()].get<std::string>());
+    if (node.contains("sources")) for (const auto& ref : node["sources"]) unique.insert(ref.get<std::string>());
     return {unique.begin(), unique.end()};
 }
 }

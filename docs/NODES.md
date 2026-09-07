@@ -9,20 +9,51 @@ alpha, data, color-space, and tiling conventions.
 
 ## array
 
-Grid of source stamps, centered in each cell.
+Grid sampler with optional source variation and control maps.
 
 | Parameter | Type | Default | Options / bounds | Meaning |
 | --- | --- | --- | --- | --- |
 | `angle` | number | `0.0` | -36000.0..36000.0 | Stamp clockwise angle. |
 | `count` | count_pair | `[4,4]` |  | Grid [columns,rows], maximum 10000 total. |
+| `direction` | reference | `null` |  | Clamped luminance adds 0..360 degrees at each stamp center. |
 | `input` | reference | **required** |  | Source node name. |
 | `jitter` | number | `0.0` | 0.0..1.0 | Position jitter as a fraction of each grid cell. |
+| `mask` | reference | `null` |  | Density probability from clamped luminance at each candidate center. |
 | `mode` | string | `"max"` | `over`, `mix`, `multiply`, `add`, `subtract`, `screen`, `overlay`, `min`, `max`, `difference` | Overlap/blend operation. |
 | `opacity` | number | `1.0` | 0.0..1.0 | Blend strength, 0 to 1. |
 | `rotation_jitter` | number | `0.0` | 0.0..360.0 | Random +/- angle in degrees. |
+| `row_offset` | number | `0.0` | -1.0..1.0 | Odd grid rows shift by this fraction of a cell; array only. |
+| `scale_map` | reference | `null` |  | Clamped luminance multiplies stamp size; black skips stamp. |
 | `seed` | seed | `null` |  | Override document seed. |
 | `size` | positive_pair | `0.1` |  | Stamp full width/height in UV units. |
+| `size_jitter` | number | `0.0` | 0.0..0.99 | Uniform random +/- fraction of size. |
+| `sources` | references | `[]` |  | Additional source nodes; select uniformly including input. |
+| `value_map` | reference | `null` |  | Clamped luminance multiplies stamp RGB/value. |
+| `value_range` | pair | `[1,1]` |  | Uniform random stamp value multiplier [min,max] within 0..1. |
 | `wrap` | boolean | `false` |  | Wrap stamps across output boundaries; max stamp size 1 UV. |
+
+## auto_levels
+
+Stretch observed RGB range to requested range; scalar uses its single channel. Constant channels map to lower output bound.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `input` | reference | **required** |  | Source node name. |
+| `per_channel` | boolean | `false` |  | Use separate RGB extrema; false shares one RGB range. |
+| `range` | pair | `[0,1]` |  | Ordered output range. |
+
+## bevel
+
+Turn a binary silhouette into a raised heightfield using inside Euclidean distance.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `height` | number | `1.0` | 0.0..10000.0 | Maximum bevel height. |
+| `input` | reference | **required** |  | Source node name. |
+| `profile` | string | `"smooth"` | `linear`, `smooth`, `round` | Bevel height profile over inside distance. |
+| `radius` | number | `16.0` | 0.01..32768.0 | Pixel distance that maps to 1; distances saturate. |
+| `threshold` | number | `0.5` | -10000.0..10000.0 | Foreground is luminance >= threshold. |
 
 ## blend
 
@@ -35,6 +66,17 @@ Combine two fields, optionally through a scalar mask.
 | `mask` | reference | `null` |  | Optional mask node; clamped luminance multiplies opacity. |
 | `mode` | string | `"over"` | `over`, `mix`, `multiply`, `add`, `subtract`, `screen`, `overlay`, `min`, `max`, `difference` | Overlap/blend operation. |
 | `opacity` | number | `1.0` | 0.0..1.0 | Blend strength, 0 to 1. |
+
+## blue_noise
+
+Toroidal best-candidate point mask, not a ranked blue-noise dither texture. Generation is O(candidates * count squared).
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `candidates` | integer | `16.0` | 1.0..64.0 | Candidates compared per point; higher gives more even spacing. |
+| `count` | integer | `512.0` | 1.0..4096.0 | Number of points. |
+| `radius` | number | `1.5` | 0.1..32.0 | Antialiased dot radius in pixels. |
+| `seed` | seed | `null` |  | Override document seed. |
 
 ## blur
 
@@ -61,12 +103,14 @@ Scalar clouds noise, backed by FastNoise2.
 
 | Parameter | Type | Default | Options / bounds | Meaning |
 | --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
 | `fractal` | string | `"fbm"` | `none`, `fbm`, `ridged` | Fractal noise combination. |
 | `gain` | number | `0.5` | 0.0..1.0 | Amplitude multiplier per octave. |
 | `lacunarity` | number | `2.0` | 1.0..4.0 | Frequency multiplier per octave. |
 | `octaves` | integer | `5.0` | 1.0..12.0 | Number of fractal octaves. |
 | `scale` | number | `8.0` | 0.001..4096.0 | Noise frequency across a unit image; larger gives smaller features. |
 | `seed` | seed | `null` |  | Override document seed; omitted uses document seed. |
+| `stretch` | positive_pair | `1` |  | Feature stretch [x,y] in the generation domain, before rasterization. |
 | `tile` | boolean | `null` |  | Override document tile setting; uses 4D torus sampling. |
 
 ## constant
@@ -76,6 +120,18 @@ Solid scalar or linear color. Hex strings are decoded from sRGB.
 | Parameter | Type | Default | Options / bounds | Meaning |
 | --- | --- | --- | --- | --- |
 | `value` | color | `0.0` |  | Number, #RRGGBB[AA], or linear [r,g,b,a]. |
+
+## directional_blur
+
+Uniform line blur with bilinear taps and premultiplied alpha.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `input` | reference | **required** |  | Source node name. |
+| `length` | number | `12.0` | 0.0..4096.0 | Full line length in pixels. |
+| `samples` | integer | `17.0` | 2.0..513.0 | Uniform taps; increase for long blur lengths. |
 
 ## directional_warp
 
@@ -90,6 +146,59 @@ Displace the source along one direction, optionally controlled by a grayscale im
 | `intensity` | reference | `null` |  | Optional control node; omission supplies white (1) everywhere. |
 | `midlevel` | number | `0.0` | 0.0..1.0 | Neutral intensity; 0 makes black stationary, 0.5 gives signed displacement. |
 | `strength` | number | `0.05` | -10.0..10.0 | UV displacement = strength * (intensity - midlevel). |
+
+## distance
+
+Exact Euclidean distance to nearest opposite-class pixel center, normalized by radius. Repeat is periodic; transparent adds virtual background outside.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `input` | reference | **required** |  | Source node name. |
+| `radius` | number | `16.0` | 0.01..32768.0 | Pixel distance that maps to 1; distances saturate. |
+| `side` | string | `"inside"` | `inside`, `outside`, `signed` | Inside to background, outside to foreground, or signed with boundary centered at 0.5. |
+| `threshold` | number | `0.5` | -10000.0..10000.0 | Foreground is luminance >= threshold. |
+
+## erode
+
+Conservative heightfield weathering: wind transport, rain water/sediment flow, or time thermal relaxation. Pixel-scale artistic simulation, not a calibrated physical solver.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
+| `capacity` | number | `8.0` | 0.0..100.0 | Rain sediment capacity coefficient. |
+| `deposition` | number | `0.3` | 0.0..1.0 | Excess rain sediment deposition fraction per step. |
+| `distance` | number | `2.0` | 0.0..128.0 | Wind transport distance in pixels. |
+| `edge` | string | `"repeat"` | `repeat`, `clamp` | Periodic or closed boundary; both retain material. |
+| `evaporation` | number | `0.1` | 0.0..1.0 | Water evaporation fraction per step; deposits that fraction of sediment. |
+| `input` | reference | **required** |  | Source node name. |
+| `iterations` | integer | `32.0` | 0.0..512.0 | Simulation steps; zero returns grayscale input. |
+| `mask` | reference | `null` |  | Optional clamped mobility mask; rain/wind deposition can land on protected pixels. |
+| `mode` | string | `"time"` | `wind`, `rain`, `time` | Erosion model. |
+| `rainfall` | number | `0.01` | 0.0..1.0 | Water added per rain step, with seeded spatial variation. |
+| `rate` | number | `0.3` | 0.0..1.0 | Erosion/relaxation rate per step. |
+| `seed` | seed | `null` |  | Override document seed. |
+| `talus` | number | `0.005` | 0.0..10000.0 | Stable height drop per pixel (time/wind). |
+
+## gaussian_blur
+
+Separable Gaussian convolution, radius ceil(3*sigma), normalized discrete weights and premultiplied alpha.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `input` | reference | **required** |  | Source node name. |
+| `sigma` | number | `2.0` | 0.0..128.0 | Standard deviation in pixels; zero is identity. |
+
+## gaussian_noise
+
+Independent Gaussian pixel values, clipped to 0..1. Not a blurred noise.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `deviation` | number | `0.15` | 0.0..10.0 | Standard deviation before clipping. |
+| `mean` | number | `0.5` | -10.0..10.0 | Distribution mean before clipping. |
+| `seed` | seed | `null` |  | Override document seed. |
 
 ## gradient
 
@@ -140,6 +249,19 @@ Clamp input range, apply gamma, map to output range.
 | `input` | reference | **required** |  | Source node name. |
 | `out` | pair | `[0,1]` |  | Output range; may be reversed. |
 
+## math
+
+Component-wise field arithmetic, preserving input alpha. Nonfinite results fail rendering.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `b` | reference | `null` |  | Optional second field; overrides value. |
+| `input` | reference | **required** |  | Source node name. |
+| `mode` | string | `"multiply"` | `add`, `subtract`, `multiply`, `divide`, `min`, `max`, `pow`, `abs`, `clamp`, `fract`, `quantize` | Divide by \|b\| < 1e-8 returns 0; pow clamps base to >=0 and defines 0 to negative powers as 0. |
+| `range` | pair | `[0,1]` |  | Clamp limits, or quantization range; ordered. |
+| `steps` | integer | `8.0` | 2.0..4096.0 | Quantization levels including both endpoints. |
+| `value` | number | `1.0` | -10000.0..10000.0 | Second operand when b is absent. |
+
 ## normal
 
 Convert scalar height to a tangent-space normal using central differences.
@@ -168,13 +290,24 @@ Scalar perlin noise, backed by FastNoise2.
 
 | Parameter | Type | Default | Options / bounds | Meaning |
 | --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
 | `fractal` | string | `"none"` | `none`, `fbm`, `ridged` | Fractal noise combination. |
 | `gain` | number | `0.5` | 0.0..1.0 | Amplitude multiplier per octave. |
 | `lacunarity` | number | `2.0` | 1.0..4.0 | Frequency multiplier per octave. |
 | `octaves` | integer | `5.0` | 1.0..12.0 | Number of fractal octaves. |
 | `scale` | number | `8.0` | 0.001..4096.0 | Noise frequency across a unit image; larger gives smaller features. |
 | `seed` | seed | `null` |  | Override document seed; omitted uses document seed. |
+| `stretch` | positive_pair | `1` |  | Feature stretch [x,y] in the generation domain, before rasterization. |
 | `tile` | boolean | `null` |  | Override document tile setting; uses 4D torus sampling. |
+
+## preset
+
+Reusable scalar material recipe expanded to ordinary nodes before validation/execution. See docs/PRESETS.md for config values.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `config` | object | `{}` |  | Controls: scale (0.25..4), detail (0..1), angle (degrees), seed (integer). Defaults 1, 0.5, 0, document seed. Unknown keys fail. |
+| `name` | string | `"dirt"` | `bnw_spots`, `gaussian_spots`, `dirt`, `grunge`, `grunge_rust`, `grunge_leaks`, `scratches`, `fibers`, `fur`, `shavings`, `brick`, `weave`, `ornament`, `creased`, `crystal`, `plasma`, `fluid`, `liquid` | Built-in preset recipe. |
 
 ## radial
 
@@ -205,6 +338,39 @@ Map scalar luminance to a color gradient with ordered stops.
 | `interpolation` | string | `"linear"` | `linear`, `smooth`, `constant` | Interpolation between stops in linear RGB. |
 | `stops` | array | **required** |  | At least two [position,color] stops, strictly increasing. |
 
+## range_mask
+
+Select an inclusive luminance interval with optional outside feather.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `input` | reference | **required** |  | Source node name. |
+| `range` | pair | `[0.3,0.7]` |  | Selected [low,high] interval. |
+| `softness` | number | `0.0` | 0.0..10.0 | Feather width beyond each end of interval. |
+
+## scatter
+
+Seeded random stamp sampler with optional source variation and control maps.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Stamp clockwise angle. |
+| `count` | integer | `500.0` | 1.0..10000.0 | Number of random candidate stamps before density rejection. |
+| `direction` | reference | `null` |  | Clamped luminance adds 0..360 degrees at each stamp center. |
+| `input` | reference | **required** |  | Source node name. |
+| `mask` | reference | `null` |  | Density probability from clamped luminance at each candidate center. |
+| `mode` | string | `"max"` | `over`, `mix`, `multiply`, `add`, `subtract`, `screen`, `overlay`, `min`, `max`, `difference` | Overlap/blend operation. |
+| `opacity` | number | `1.0` | 0.0..1.0 | Blend strength, 0 to 1. |
+| `rotation_jitter` | number | `0.0` | 0.0..360.0 | Random +/- angle in degrees. |
+| `scale_map` | reference | `null` |  | Clamped luminance multiplies stamp size; black skips stamp. |
+| `seed` | seed | `null` |  | Override document seed. |
+| `size` | positive_pair | `0.1` |  | Stamp full width/height in UV units. |
+| `size_jitter` | number | `0.0` | 0.0..0.99 | Uniform random +/- fraction of size. |
+| `sources` | references | `[]` |  | Additional source nodes; select uniformly including input. |
+| `value_map` | reference | `null` |  | Clamped luminance multiplies stamp RGB/value. |
+| `value_range` | pair | `[1,1]` |  | Uniform random stamp value multiplier [min,max] within 0..1. |
+| `wrap` | boolean | `false` |  | Wrap stamps across output boundaries; max stamp size 1 UV. |
+
 ## shape
 
 Antialiased scalar mask or transparent colored stamp.
@@ -214,10 +380,13 @@ Antialiased scalar mask or transparent colored stamp.
 | `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise rotation in degrees. |
 | `center` | pair | `[0.5,0.5]` |  | Center in normalized image coordinates. |
 | `color` | color | `null` |  | Optional color; omission produces a scalar mask. |
+| `inner_radius` | number | `0.45` | 0.01..1.0 | Star inner radius relative to outer radius. |
+| `sides` | integer | `6.0` | 3.0..64.0 | Polygon sides or star points. |
+| `sigma` | number | `0.3` | 0.01..2.0 | Gaussian standard deviation relative to half-size; cropped at radius 1. |
 | `size` | positive_pair | `0.8` |  | Full width/height in UV units. |
 | `softness` | number | `0.0` | 0.0..1.0 | Inward edge feather, relative to half-size. |
 | `thickness` | number | `0.2` | 0.001..1.0 | Ring thickness, relative to radius. |
-| `type` | string | `"circle"` | `circle`, `box`, `diamond`, `ring` | Shape geometry. |
+| `type` | string | `"circle"` | `circle`, `box`, `diamond`, `ring`, `polygon`, `star`, `capsule`, `gaussian` | Shape geometry. |
 
 ## simplex
 
@@ -225,13 +394,28 @@ Scalar simplex noise, backed by FastNoise2.
 
 | Parameter | Type | Default | Options / bounds | Meaning |
 | --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
 | `fractal` | string | `"none"` | `none`, `fbm`, `ridged` | Fractal noise combination. |
 | `gain` | number | `0.5` | 0.0..1.0 | Amplitude multiplier per octave. |
 | `lacunarity` | number | `2.0` | 1.0..4.0 | Frequency multiplier per octave. |
 | `octaves` | integer | `5.0` | 1.0..12.0 | Number of fractal octaves. |
 | `scale` | number | `8.0` | 0.001..4096.0 | Noise frequency across a unit image; larger gives smaller features. |
 | `seed` | seed | `null` |  | Override document seed; omitted uses document seed. |
+| `stretch` | positive_pair | `1` |  | Feature stretch [x,y] in the generation domain, before rasterization. |
 | `tile` | boolean | `null` |  | Override document tile setting; uses 4D torus sampling. |
+
+## slope_blur
+
+Repeatedly follow the downhill gradient of a scalar slope map and sample the source.
+
+| Parameter | Type | Default | Options / bounds | Meaning |
+| --- | --- | --- | --- | --- |
+| `edge` | string | `"repeat"` | `repeat`, `clamp`, `transparent` | Boundary sampling. |
+| `input` | reference | **required** |  | Source node name. |
+| `mode` | string | `"average"` | `average`, `min`, `max` | Average premultiplied samples, or component minima/maxima. |
+| `samples` | integer | `16.0` | 1.0..256.0 | Steps along the slope; includes initial source in reduction. |
+| `slope` | reference | **required** |  | Source node name. |
+| `strength` | number | `8.0` | 0.0..4096.0 | Total travel distance in pixels on non-flat slopes. |
 
 ## stamp
 
@@ -287,12 +471,14 @@ Scalar value noise, backed by FastNoise2.
 
 | Parameter | Type | Default | Options / bounds | Meaning |
 | --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
 | `fractal` | string | `"none"` | `none`, `fbm`, `ridged` | Fractal noise combination. |
 | `gain` | number | `0.5` | 0.0..1.0 | Amplitude multiplier per octave. |
 | `lacunarity` | number | `2.0` | 1.0..4.0 | Frequency multiplier per octave. |
 | `octaves` | integer | `5.0` | 1.0..12.0 | Number of fractal octaves. |
 | `scale` | number | `8.0` | 0.001..4096.0 | Noise frequency across a unit image; larger gives smaller features. |
 | `seed` | seed | `null` |  | Override document seed; omitted uses document seed. |
+| `stretch` | positive_pair | `1` |  | Feature stretch [x,y] in the generation domain, before rasterization. |
 | `tile` | boolean | `null` |  | Override document tile setting; uses 4D torus sampling. |
 
 ## voronoi
@@ -301,6 +487,7 @@ Scalar voronoi noise, backed by FastNoise2.
 
 | Parameter | Type | Default | Options / bounds | Meaning |
 | --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
 | `distance` | string | `"euclidean"` | `euclidean`, `squared`, `manhattan`, `hybrid` | Cell distance metric. |
 | `feature` | string | `"distance"` | `distance`, `cells`, `edges` | Nearest distance, random cell values, or F2-F1 edges (bright cell interiors). |
 | `fractal` | string | `"none"` | `none`, `fbm`, `ridged` | Fractal noise combination. |
@@ -310,6 +497,7 @@ Scalar voronoi noise, backed by FastNoise2.
 | `octaves` | integer | `5.0` | 1.0..12.0 | Number of fractal octaves. |
 | `scale` | number | `8.0` | 0.001..4096.0 | Noise frequency across a unit image; larger gives smaller features. |
 | `seed` | seed | `null` |  | Override document seed; omitted uses document seed. |
+| `stretch` | positive_pair | `1` |  | Feature stretch [x,y] in the generation domain, before rasterization. |
 | `tile` | boolean | `null` |  | Override document tile setting; uses 4D torus sampling. |
 
 ## warp
@@ -330,11 +518,13 @@ Scalar white noise, backed by FastNoise2.
 
 | Parameter | Type | Default | Options / bounds | Meaning |
 | --- | --- | --- | --- | --- |
+| `angle` | number | `0.0` | -36000.0..36000.0 | Clockwise degrees; 0 points right. |
 | `fractal` | string | `"none"` | `none`, `fbm`, `ridged` | Fractal noise combination. |
 | `gain` | number | `0.5` | 0.0..1.0 | Amplitude multiplier per octave. |
 | `lacunarity` | number | `2.0` | 1.0..4.0 | Frequency multiplier per octave. |
 | `octaves` | integer | `5.0` | 1.0..12.0 | Number of fractal octaves. |
 | `scale` | number | `8.0` | 0.001..4096.0 | Noise frequency across a unit image; larger gives smaller features. |
 | `seed` | seed | `null` |  | Override document seed; omitted uses document seed. |
+| `stretch` | positive_pair | `1` |  | Feature stretch [x,y] in the generation domain, before rasterization. |
 | `tile` | boolean | `null` |  | Override document tile setting; uses 4D torus sampling. |
 

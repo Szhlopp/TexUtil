@@ -42,6 +42,8 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
     require(defaultBits == 8 || defaultBits == 16 || defaultBits == 32, "bits must be 8, 16 or 32");
     require(doc.contains("nodes") && doc["nodes"].is_object() && !doc["nodes"].empty(), "nodes must be a nonempty object");
     require(doc["nodes"].size() <= 4096, "maximum 4096 nodes");
+    doc["nodes"] = expandPresets(doc["nodes"]);
+    require(doc["nodes"].size() <= 4096, "maximum 4096 nodes after preset expansion");
     for (auto it = doc["nodes"].begin(); it != doc["nodes"].end(); ++it) {
         require(!it.key().empty(), "node names cannot be empty");
         nodes_[it.key()] = normalizedNode(it.key(), it.value());

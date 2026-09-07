@@ -22,6 +22,7 @@
 /_deps/
 /texutil
 /texutil_tests
+/texutil_advanced_tests
 
 # Compiled C/C++ artifacts.
 *.o

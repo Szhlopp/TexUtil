@@ -102,4 +102,52 @@ and a process strip saved as `out/wood/preview.png`. See [WOOD.md](WOOD.md).
 
 `.gitignore` was checked using Git in a temporary repository: build directories,
 compiled objects and `out/` were ignored; source, docs, example JSON and source PNG
-assets remained trackable. No repository was initialized in the project itself.
+assets remained trackable. The project was subsequently initialized as a Git repository and connected to its GitHub remote.
+
+## Advanced nodes, presets and erosion
+
+All nine Release CTest targets pass. The original seven test groups remain, plus
+four groups in `advanced_nodes` and render tests for each new gallery document.
+New numerical coverage includes:
+
+- Exact distance results against a brute-force oracle for all three boundary and
+  side modes, uniform masks, and bevel heights.
+- Gaussian impulse kernel/energy/symmetry, directional support, transparent-color
+  filtering, flat-slope identity, directional slope transport, arithmetic, range
+  masks and flat/ranged auto levels.
+- Erosion mass conservation, finite nonnegative heights, black masks, constant
+  height, zero steps, tiny periodic/closed domains, downwind motion, rainfall seeds,
+  reduced thermal roughness energy and exact worker-count determinism.
+- Erosion scratch-buffer memory budget enforcement.
+- Sampler row offsets, directional/value/scale maps, source selection, missing
+  source validation and randomized footprint limits.
+- New shape coverage, Gaussian noise distribution, seeded point masks, anisotropic
+  noise determinism and effective-frequency limits.
+- Every preset's output, deterministic workers, config extremes, unknown config
+  rejection and collision-safe expansion.
+
+Single measured 512x512 runs, eight workers, including exports, 2026-09-07:
+
+| Graph | Exports | Total ms | Export ms | Peak float buffers MiB |
+| --- | --- | --- | --- | --- |
+| nodes-gallery | 36 | 402.6 | 153.4 | 7.0 |
+| presets-gallery | 18 | 197.9 | 99.5 | 4.0 |
+| erosion | 16 | 850.8 | 201.1 | 11.0 |
+
+Reproduce using `python3 tools/gallery.py`. Each output directory contains its
+machine-readable `stats.json`. There are 36 primitive PNGs, 18 preset PNGs,
+12 erosion PNGs, four unclipped erosion PFM files, and three labeled contact sheets.
+The sheets were visually inspected. The helper explicitly scales 16-bit grayscale
+PNGs to 8-bit previews before creating RGB thumbnails.
+
+For the final erosion example, the largest relative height-sum change across wind,
+rain and time was 3.94e-08, measured from the float PFM outputs. Wind piles
+can exceed height 1, so the PNG/color previews can clip highlights. Rain is a local
+water/sediment approximation and its visual effect depends strongly on parameters;
+the final example uses 400 rain steps, 80 wind steps and 160 thermal steps.
+[EROSION.md](EROSION.md) documents the simulation models and limitations.
+
+Build products and `out/` were confirmed ignored by Git after adding the new test
+executable. Source, tests, example graphs, gallery script and documentation remain
+trackable. The sanitizer limitation recorded earlier remains unresolved; these
+new changes are validated with the Release suites, not a new sanitizer pass.

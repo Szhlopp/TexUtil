@@ -172,7 +172,7 @@ stamps to fit their cells; set `size` explicitly.
 
 See [the node reference](docs/NODES.md) for every field, default and allowed value,
 and [the execution plan](docs/PLAN.md) for architectural boundaries. The executable
-currently supports 27 operations. [Validation and benchmarks](docs/VALIDATION.md)
+currently supports 40 operations and 18 built-in preset recipes. [Validation and benchmarks](docs/VALIDATION.md)
 record correctness checks, measured timings and visual review.
 
 ## Directional warp and wood
@@ -182,6 +182,38 @@ image or selected channel. `stripes` supplies antialiased periodic lines. The
 [wood recipe](docs/WOOD.md) explains how these combine with shapes, stamps and noise
 to create knotted grain. `examples/wood.json` exports color, height, normal and
 roughness maps.
+
+## Presets and erosion
+
+```json
+{
+  "size": 512,
+  "tile": true,
+  "nodes": {
+    "base": {"op": "preset", "name": "brick", "config": {"scale": 1, "detail": 0.7, "seed": 42}},
+    "worn": {"op": "erode", "input": "base", "mode": "time", "iterations": 32},
+    "normal": {"op": "normal", "input": "worn", "strength": 0.02}
+  },
+  "outputs": {"height.png": {"node": "worn", "bits": 16}, "normal.png": "normal"}
+}
+```
+
+`texutil presets` lists recipes; `texutil presets --json` returns a JSON array.
+[Presets](docs/PRESETS.md) describes each recipe and its `config` object.
+[Advanced nodes](docs/ADVANCED.md) covers distance/bevel, filters, math,
+noise-domain anisotropy and sampling maps. [Erosion](docs/EROSION.md) explains wind,
+rain and time controls, conservation, boundary behavior and simulation limits.
+
+Render all new features, all presets and an erosion comparison with:
+
+```sh
+python3 tools/gallery.py
+```
+
+This optional Pillow helper saves individual PNGs and labeled `gallery.png` sheets
+under `out/nodes-gallery/`, `out/presets-gallery/`, and `out/erosion/`. Erosion also
+exports unclipped float PFM heights. Every graph is checked in under `examples/`;
+the C++ tool can render them directly without Python.
 
 ## Performance and limits
 
@@ -198,7 +230,11 @@ also checks temporary raw storage against available budget. It is not a hard pro
 RSS cap: codecs, thread stacks, row buffers and JSON have additional overhead.
 Graphs exceeding the image-buffer budget fail with a useful error. Stamps/arrays
 are limited to 10000 placements and 4 million row-band references. Noise supports
-up to 12 octaves. Very large stamp footprints/counts can still be expensive.
+up to 12 octaves, with effective frequency including stretch capped at 10 million.
+Gaussian blur costs O(pixels × sigma); line/slope blur costs O(pixels × samples).
+Distance/bevel use linear-time separable distance transforms. Erosion costs
+O(pixels × iterations), up to 512 steps; all full-image working buffers count
+toward the memory limit. Blue-noise point selection costs O(candidates × count²). Very large stamp footprints/counts can still be expensive.
 
 Validation checks fields, ranges, references, cycles (including unused nodes),
 output settings and input file existence. PNG contents and actual memory needs are
@@ -214,5 +250,4 @@ floating-point mode is enabled.
 - libpng: platform library; libpng license, with zlib dependency.
 
 Their license texts remain in the fetched sources or installed packages. See
-[third-party notices](docs/THIRD_PARTY.md). This repository does not yet declare a
-license for TexUtil's own source.
+[third-party notices](docs/THIRD_PARTY.md). TexUtil itself uses the [MIT license](LICENSE).

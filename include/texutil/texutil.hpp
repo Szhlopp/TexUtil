@@ -65,6 +65,9 @@ private:
     std::exception_ptr error_;
 };
 
+void addAdvancedCatalog(Json& result);
+Json expandPresets(Json nodes);
+Json presetNames();
 Json catalog();
 Json normalizedNode(const std::string& id, const Json& node);
 std::vector<std::string> dependencies(const Json& node);
@@ -90,6 +93,9 @@ struct Context {
     std::shared_ptr<Memory> memory;
 };
 ImagePtr execute(const Json& node, const std::map<std::string, ImagePtr>& inputs, Context& context);
+
+ImagePtr advanced(const Json& node, const std::map<std::string, ImagePtr>& inputs, Context& context);
+ImagePtr erode(const Json& node, const ImagePtr& input, const ImagePtr& mask, Context& context);
 
 class Graph {
 public:

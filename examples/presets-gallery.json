@@ -1,0 +1,171 @@
+{
+  "size": 512,
+  "seed": 42,
+  "tile": true,
+  "nodes": {
+    "bnw_spots": {
+      "op": "preset",
+      "name": "bnw_spots",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "gaussian_spots": {
+      "op": "preset",
+      "name": "gaussian_spots",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "dirt": {
+      "op": "preset",
+      "name": "dirt",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "grunge": {
+      "op": "preset",
+      "name": "grunge",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "grunge_rust": {
+      "op": "preset",
+      "name": "grunge_rust",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "grunge_leaks": {
+      "op": "preset",
+      "name": "grunge_leaks",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "scratches": {
+      "op": "preset",
+      "name": "scratches",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "fibers": {
+      "op": "preset",
+      "name": "fibers",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "fur": {
+      "op": "preset",
+      "name": "fur",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "shavings": {
+      "op": "preset",
+      "name": "shavings",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "brick": {
+      "op": "preset",
+      "name": "brick",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "weave": {
+      "op": "preset",
+      "name": "weave",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "ornament": {
+      "op": "preset",
+      "name": "ornament",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "creased": {
+      "op": "preset",
+      "name": "creased",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "crystal": {
+      "op": "preset",
+      "name": "crystal",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "plasma": {
+      "op": "preset",
+      "name": "plasma",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "fluid": {
+      "op": "preset",
+      "name": "fluid",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    },
+    "liquid": {
+      "op": "preset",
+      "name": "liquid",
+      "config": {
+        "scale": 1,
+        "detail": 0.65
+      }
+    }
+  },
+  "outputs": {
+    "bnw_spots.png": "bnw_spots",
+    "gaussian_spots.png": "gaussian_spots",
+    "dirt.png": "dirt",
+    "grunge.png": "grunge",
+    "grunge_rust.png": "grunge_rust",
+    "grunge_leaks.png": "grunge_leaks",
+    "scratches.png": "scratches",
+    "fibers.png": "fibers",
+    "fur.png": "fur",
+    "shavings.png": "shavings",
+    "brick.png": "brick",
+    "weave.png": "weave",
+    "ornament.png": "ornament",
+    "creased.png": "creased",
+    "crystal.png": "crystal",
+    "plasma.png": "plasma",
+    "fluid.png": "fluid",
+    "liquid.png": "liquid"
+  }
+}

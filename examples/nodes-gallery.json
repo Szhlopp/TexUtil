@@ -1,0 +1,335 @@
+{
+  "size": 512,
+  "seed": 42,
+  "tile": true,
+  "nodes": {
+    "source": {
+      "op": "clouds",
+      "scale": 10,
+      "octaves": 4
+    },
+    "mask": {
+      "op": "shape",
+      "type": "circle",
+      "size": 0.75,
+      "softness": 0.25
+    },
+    "polygon": {
+      "op": "shape",
+      "type": "polygon"
+    },
+    "star": {
+      "op": "shape",
+      "type": "star"
+    },
+    "capsule": {
+      "op": "shape",
+      "type": "capsule"
+    },
+    "gaussian": {
+      "op": "shape",
+      "type": "gaussian"
+    },
+    "gaussian-noise": {
+      "op": "gaussian_noise"
+    },
+    "blue-noise": {
+      "op": "blue_noise",
+      "count": 768,
+      "radius": 2
+    },
+    "anisotropic-clouds": {
+      "op": "clouds",
+      "stretch": [
+        0.35,
+        5
+      ],
+      "angle": 25,
+      "scale": 14
+    },
+    "anisotropic-perlin": {
+      "op": "perlin",
+      "stretch": [
+        0.35,
+        5
+      ],
+      "angle": 25,
+      "scale": 14
+    },
+    "anisotropic-value": {
+      "op": "value",
+      "stretch": [
+        0.35,
+        5
+      ],
+      "angle": 25,
+      "scale": 14
+    },
+    "anisotropic-simplex": {
+      "op": "simplex",
+      "stretch": [
+        0.35,
+        5
+      ],
+      "angle": 25,
+      "scale": 14
+    },
+    "anisotropic-white": {
+      "op": "white",
+      "stretch": [
+        0.35,
+        5
+      ],
+      "angle": 25,
+      "scale": 14
+    },
+    "anisotropic-voronoi": {
+      "op": "voronoi",
+      "stretch": [
+        0.35,
+        5
+      ],
+      "angle": 25,
+      "scale": 14
+    },
+    "scatter": {
+      "op": "scatter",
+      "input": "star",
+      "sources": [
+        "polygon",
+        "capsule"
+      ],
+      "mask": "mask",
+      "count": 300,
+      "size": 0.085,
+      "size_jitter": 0.5,
+      "rotation_jitter": 180,
+      "value_range": [
+        0.35,
+        1
+      ],
+      "wrap": true
+    },
+    "direction-map": {
+      "op": "gradient",
+      "type": "angular"
+    },
+    "controlled-array": {
+      "op": "array",
+      "input": "capsule",
+      "sources": [
+        "star"
+      ],
+      "count": [
+        10,
+        10
+      ],
+      "size": [
+        0.065,
+        0.045
+      ],
+      "jitter": 0.2,
+      "size_jitter": 0.25,
+      "row_offset": 0.5,
+      "direction": "direction-map",
+      "scale_map": "mask",
+      "value_map": "source",
+      "wrap": true
+    },
+    "distance": {
+      "op": "distance",
+      "input": "star",
+      "side": "outside",
+      "radius": 70
+    },
+    "signed-distance": {
+      "op": "distance",
+      "input": "star",
+      "side": "signed",
+      "radius": 45
+    },
+    "bevel": {
+      "op": "bevel",
+      "input": "star",
+      "radius": 24,
+      "profile": "round"
+    },
+    "bevel-normal": {
+      "op": "normal",
+      "input": "bevel",
+      "strength": 0.03
+    },
+    "gaussian-blur": {
+      "op": "gaussian_blur",
+      "input": "scatter",
+      "sigma": 3
+    },
+    "directional-blur": {
+      "op": "directional_blur",
+      "input": "scatter",
+      "length": 35,
+      "angle": 25,
+      "samples": 49
+    },
+    "slope-average": {
+      "op": "slope_blur",
+      "input": "scatter",
+      "slope": "source",
+      "strength": 14,
+      "samples": 20,
+      "mode": "average"
+    },
+    "slope-min": {
+      "op": "slope_blur",
+      "input": "scatter",
+      "slope": "source",
+      "strength": 14,
+      "samples": 20,
+      "mode": "min"
+    },
+    "slope-max": {
+      "op": "slope_blur",
+      "input": "scatter",
+      "slope": "source",
+      "strength": 14,
+      "samples": 20,
+      "mode": "max"
+    },
+    "auto-levels": {
+      "op": "auto_levels",
+      "input": "source"
+    },
+    "range-mask": {
+      "op": "range_mask",
+      "input": "source",
+      "range": [
+        0.48,
+        0.57
+      ],
+      "softness": 0.04
+    },
+    "gradient": {
+      "op": "gradient"
+    },
+    "operand": {
+      "op": "math",
+      "input": "gradient",
+      "mode": "multiply",
+      "value": 3
+    },
+    "math-add": {
+      "op": "math",
+      "input": "source",
+      "mode": "add",
+      "value": 0.25
+    },
+    "math-subtract": {
+      "op": "math",
+      "input": "source",
+      "mode": "subtract",
+      "value": 0.25
+    },
+    "math-multiply": {
+      "op": "math",
+      "input": "source",
+      "mode": "multiply",
+      "value": 0.25
+    },
+    "math-divide": {
+      "op": "math",
+      "input": "source",
+      "mode": "divide",
+      "value": 0.25
+    },
+    "math-min": {
+      "op": "math",
+      "input": "source",
+      "mode": "min",
+      "value": 0.25
+    },
+    "math-max": {
+      "op": "math",
+      "input": "source",
+      "mode": "max",
+      "value": 0.25
+    },
+    "math-pow": {
+      "op": "math",
+      "input": "source",
+      "mode": "pow",
+      "value": 3
+    },
+    "signed": {
+      "op": "math",
+      "input": "source",
+      "mode": "subtract",
+      "value": 0.5
+    },
+    "math-abs": {
+      "op": "math",
+      "input": "signed",
+      "mode": "abs",
+      "value": 0.25
+    },
+    "math-clamp": {
+      "op": "math",
+      "input": "source",
+      "mode": "clamp",
+      "value": 0.25,
+      "range": [
+        0.35,
+        0.65
+      ]
+    },
+    "math-fract": {
+      "op": "math",
+      "input": "operand",
+      "mode": "fract",
+      "value": 0.25
+    },
+    "math-quantize": {
+      "op": "math",
+      "input": "operand",
+      "mode": "quantize",
+      "value": 0.25
+    }
+  },
+  "outputs": {
+    "polygon.png": "polygon",
+    "star.png": "star",
+    "capsule.png": "capsule",
+    "gaussian.png": "gaussian",
+    "gaussian-noise.png": "gaussian-noise",
+    "blue-noise.png": "blue-noise",
+    "anisotropic-clouds.png": "anisotropic-clouds",
+    "anisotropic-perlin.png": "anisotropic-perlin",
+    "anisotropic-value.png": "anisotropic-value",
+    "anisotropic-simplex.png": "anisotropic-simplex",
+    "anisotropic-white.png": "anisotropic-white",
+    "anisotropic-voronoi.png": "anisotropic-voronoi",
+    "scatter.png": "scatter",
+    "controlled-array.png": "controlled-array",
+    "distance.png": "distance",
+    "signed-distance.png": "signed-distance",
+    "bevel.png": "bevel",
+    "bevel-normal.png": "bevel-normal",
+    "gaussian-blur.png": "gaussian-blur",
+    "directional-blur.png": "directional-blur",
+    "slope-average.png": "slope-average",
+    "slope-min.png": "slope-min",
+    "slope-max.png": "slope-max",
+    "auto-levels.png": "auto-levels",
+    "range-mask.png": "range-mask",
+    "math-add.png": "math-add",
+    "math-subtract.png": "math-subtract",
+    "math-multiply.png": "math-multiply",
+    "math-divide.png": "math-divide",
+    "math-min.png": "math-min",
+    "math-max.png": "math-max",
+    "math-pow.png": "math-pow",
+    "math-abs.png": "math-abs",
+    "math-clamp.png": "math-clamp",
+    "math-fract.png": "math-fract",
+    "math-quantize.png": "math-quantize"
+  }
+}

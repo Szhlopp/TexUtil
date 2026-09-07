@@ -9,7 +9,8 @@ to output directory, size, seed, threads and memory budget. Node options live in
 
 ## Execution
 
-1. Parse and validate every node, parameter, reference, output and cycle before rendering.
+1. Expand preset recipes into collision-safe ordinary node names, then validate every
+   node, parameter, reference, output and cycle before rendering.
 2. Build a topological schedule for nodes reachable from selected outputs.
 3. Evaluate each node once into an immutable float image (one channel for scalar
    data, four for color and encoded normals). A persistent worker pool divides rows.
@@ -52,9 +53,34 @@ the platform. Export file writes are individual, not a transactional multi-file 
 
 ## Implemented outcome
 
-The first pass implements 27 discoverable operations and six example documents.
+The current implementation has 40 discoverable operations, 18 preset recipes, and
+nine example documents including three feature galleries.
 The evaluator and exporters follow the design above. Tiled noise is also parallel:
 TexUtil constructs periodic 4D coordinates and dispatches row batches through
 FastNoise2's SIMD position-array API. Validation, tests and measured performance
 are documented in [VALIDATION.md](VALIDATION.md). The generated node catalog is
 available as both [Markdown](NODES.md) and [JSON](nodes.json).
+
+## Advanced nodes and heightfield weathering
+
+Implemented as additions to the existing graph contract. Ordinary primitives stay
+in `src/nodes.cpp`; advanced image filters and distance transforms live in
+`src/advanced.cpp`, simulations in `src/erosion.cpp`, and recipes in
+`src/presets.cpp`. `src/advanced_catalog.cpp` extends the same authoritative catalog
+used by validation, discovery and generated documentation.
+
+- Samplers reuse bounded stamp rectangles and row-band indexing. Additional source
+  references participate in graph validation and lifetime tracking.
+- Anisotropic noise changes SIMD sample coordinates before rasterization.
+- Euclidean distances use separable lower envelopes of squared-distance parabolas.
+  Periodic transforms consider three copies of each row/column, then keep the center.
+- Gaussian convolution and path blurs handle color in premultiplied alpha.
+- Erosion uses synchronous steps with tracked full-image buffers. Wind deposition
+  is serial to keep summation order deterministic; other passes parallelize by row.
+- Presets expand once before scheduling. They have no separate image evaluator or
+  hidden persistent cache. Timings expose every generated primitive.
+
+Validation adds analytic filter checks, brute-force distance comparisons,
+conservation and directional transport checks, seed/thread determinism, tiny
+heightfields, sampler controls and renders of every preset. Labeled image galleries
+are generated from checked-in JSON recipes and visually reviewed.
