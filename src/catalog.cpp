@@ -158,6 +158,7 @@ Json normalizedNode(const std::string& id, const Json& node) {
     for (auto it = params.begin(); it != params.end(); ++it) if (it.value()["type"] == "positive_pair" && out.contains(it.key()) && out[it.key()].is_number()) out[it.key()] = Json::array({out[it.key()], out[it.key()]});
     if ((op == "math" || op == "auto_levels" || op == "range_mask") && out.contains("range")) require(out["range"][0].get<float>() <= out["range"][1].get<float>(), prefix + "range must increase");
     if (out.contains("value_range")) require(out["value_range"][0].get<float>() >= 0 && out["value_range"][0].get<float>() <= out["value_range"][1].get<float>() && out["value_range"][1].get<float>() <= 1, prefix + "value_range must increase within 0..1");
+    if (op == "swirl" && out["wrap"].get<bool>()) require(out["radius"].get<float>() <= 0.5f && out["edge"] == "repeat", prefix + "wrapped swirl requires radius <= 0.5 and edge:repeat");
     if (op == "levels") require(out["in"][0].get<float>() < out["in"][1].get<float>(), prefix + "input range must increase at float precision");
     if (out.contains("fractal")) {
         double frequency = out["scale"].get<double>() / std::min(out["stretch"][0].get<double>(), out["stretch"][1].get<double>());

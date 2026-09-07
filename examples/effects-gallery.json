@@ -1,0 +1,199 @@
+{
+  "size": 512,
+  "seed": 42,
+  "tile": true,
+  "nodes": {
+    "star": {
+      "op": "shape",
+      "type": "star",
+      "sides": 5,
+      "size": 0.65,
+      "inner_radius": 0.45
+    },
+    "colored-star": {
+      "op": "shape",
+      "type": "star",
+      "sides": 5,
+      "size": 0.65,
+      "inner_radius": 0.45,
+      "color": "#73daf8"
+    },
+    "stripes": {
+      "op": "stripes",
+      "count": 9,
+      "wave": "sine"
+    },
+    "source": {
+      "op": "preset",
+      "name": "weave",
+      "config": {
+        "scale": 0.75,
+        "detail": 0.3
+      }
+    },
+    "glow-outer": {
+      "op": "glow",
+      "input": "colored-star",
+      "channel": "alpha",
+      "color": "#169aff",
+      "radius": 12,
+      "strength": 3
+    },
+    "glow-inner": {
+      "op": "glow",
+      "input": "star",
+      "mode": "inner",
+      "include_source": false,
+      "radius": 10,
+      "strength": 3,
+      "color": "#56eea9"
+    },
+    "glow-both": {
+      "op": "glow",
+      "input": "colored-star",
+      "channel": "alpha",
+      "mode": "both",
+      "radius": 14,
+      "strength": 2,
+      "color": "#ffbf4f"
+    },
+    "stroke-outside": {
+      "op": "stroke",
+      "input": "star",
+      "position": "outside",
+      "width": 9
+    },
+    "stroke-inside": {
+      "op": "stroke",
+      "input": "star",
+      "position": "inside",
+      "width": 9
+    },
+    "stroke-center": {
+      "op": "stroke",
+      "input": "colored-star",
+      "channel": "alpha",
+      "position": "center",
+      "width": 12,
+      "color": "#ffb947",
+      "include_source": true
+    },
+    "sobel": {
+      "op": "edge_detect",
+      "input": "source",
+      "method": "sobel",
+      "strength": 2
+    },
+    "scharr": {
+      "op": "edge_detect",
+      "input": "source",
+      "method": "scharr",
+      "strength": 2
+    },
+    "laplacian": {
+      "op": "edge_detect",
+      "input": "source",
+      "method": "laplacian",
+      "strength": 3
+    },
+    "swirl-clockwise": {
+      "op": "swirl",
+      "input": "source",
+      "angle": 320
+    },
+    "swirl-counterclockwise": {
+      "op": "swirl",
+      "input": "source",
+      "angle": -320
+    },
+    "swirl-wrapped": {
+      "op": "swirl",
+      "input": "source",
+      "angle": 320,
+      "center": [
+        1,
+        0.5
+      ],
+      "radius": 0.42,
+      "wrap": true
+    },
+    "polar-disk": {
+      "op": "polar",
+      "input": "stripes",
+      "mode": "from_polar",
+      "radius": 0.45
+    },
+    "polar-strip": {
+      "op": "polar",
+      "input": "star",
+      "mode": "to_polar",
+      "radius": 0.5
+    }
+  },
+  "outputs": {
+    "star.png": {
+      "node": "star",
+      "alpha": true
+    },
+    "glow-outer.png": {
+      "node": "glow-outer",
+      "alpha": true
+    },
+    "glow-inner.png": {
+      "node": "glow-inner",
+      "alpha": true
+    },
+    "glow-both.png": {
+      "node": "glow-both",
+      "alpha": true
+    },
+    "stroke-outside.png": {
+      "node": "stroke-outside",
+      "alpha": true
+    },
+    "stroke-inside.png": {
+      "node": "stroke-inside",
+      "alpha": true
+    },
+    "stroke-center.png": {
+      "node": "stroke-center",
+      "alpha": true
+    },
+    "source.png": {
+      "node": "source",
+      "alpha": true
+    },
+    "sobel.png": {
+      "node": "sobel",
+      "alpha": true
+    },
+    "scharr.png": {
+      "node": "scharr",
+      "alpha": true
+    },
+    "laplacian.png": {
+      "node": "laplacian",
+      "alpha": true
+    },
+    "swirl-clockwise.png": {
+      "node": "swirl-clockwise",
+      "alpha": true
+    },
+    "swirl-counterclockwise.png": {
+      "node": "swirl-counterclockwise",
+      "alpha": true
+    },
+    "swirl-wrapped.png": {
+      "node": "swirl-wrapped",
+      "alpha": true
+    },
+    "polar-disk.png": {
+      "node": "polar-disk",
+      "alpha": true
+    },
+    "polar-strip.png": {
+      "node": "polar-strip",
+      "alpha": true
+    }
+  }
+}

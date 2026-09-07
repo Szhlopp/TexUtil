@@ -9,6 +9,7 @@ namespace {
 constexpr float pi = 3.14159265358979323846f;
 ImagePtr make(Context& c, Kind kind = Kind::Scalar) { return std::make_shared<Image>(c.width, c.height, kind, c.memory); }
 Pixel gray(float v) { return {v, v, v, 1}; }
+float component(Pixel p, const std::string& channel) { return channel == "alpha" ? p[3] : channel == "r" ? p[0] : channel == "g" ? p[1] : channel == "b" ? p[2] : luminance(p); }
 float smooth(float x) { x = clamp(x); return x * x * (3 - 2 * x); }
 uint32_t hash(uint32_t x) { x = (x ^ (x >> 16)) * 0x21f0aaadu; x = (x ^ (x >> 15)) * 0x735a2d97u; return x ^ (x >> 15); }
 float unit(uint32_t x) { return static_cast<float>(hash(x) >> 8) / 16777216.0f; }
@@ -83,8 +84,99 @@ ImagePtr advanced(const Json& n, const std::map<std::string, ImagePtr>& inputs, 
         }
         return out;
     }
-    if (op != "math" && op != "auto_levels" && op != "range_mask" && op != "distance" && op != "bevel" && op != "gaussian_blur" && op != "directional_blur" && op != "slope_blur") return {};
+    if (op != "math" && op != "auto_levels" && op != "range_mask" && op != "distance" && op != "bevel" && op != "gaussian_blur" && op != "directional_blur" && op != "slope_blur" && op != "swirl" && op != "polar" && op != "edge_detect" && op != "stroke" && op != "glow") return {};
     auto src = inputs.at(n["input"].get<std::string>());
+    if (op == "swirl") {
+        float cx = n["center"][0], cy = n["center"][1], radius = n["radius"], degrees = n["angle"], falloff = n["falloff"];
+        bool wrap = n["wrap"]; std::string edge = n["edge"]; float unit = static_cast<float>(std::min(c.width, c.height));
+        auto mask = n.contains("mask") ? inputs.at(n["mask"].get<std::string>()) : ImagePtr{};
+        if (degrees == 0) return src;
+        return pixels(src->kind, [&](int x, int y) {
+            float u = (x + .5f) / c.width, v = (y + .5f) / c.height, du = u - cx, dv = v - cy;
+            if (wrap) { du -= std::floor(du + .5f); dv -= std::floor(dv + .5f); }
+            float dx = du * c.width / unit, dy = dv * c.height / unit, r = std::hypot(dx, dy);
+            if (r >= radius) return src->get(x, y);
+            float a = -degrees * pi / 180 * std::pow(1 - r / radius, falloff) * (mask ? clamp(luminance(mask->get(x, y))) : 1);
+            if (a == 0) return src->get(x, y);
+            float cs = std::cos(a), sn = std::sin(a);
+            return src->sample(u + (cs * dx - sn * dy - dx) * unit / c.width, v + (sn * dx + cs * dy - dy) * unit / c.height, edge);
+        });
+    }
+    if (op == "polar") {
+        float cx = n["center"][0], cy = n["center"][1], radius = n["radius"], offset = n["angle"].get<float>() * pi / 180;
+        float unit = static_cast<float>(std::min(c.width, c.height)); std::string mode = n["mode"], edge = n["edge"];
+        // Angular samples always wrap, including interpolation across the strip seam.
+        auto strip = [&](float u, float v) {
+            u -= std::floor(u); if (edge == "repeat") v -= std::floor(v); else if (edge == "clamp") v = clamp(v);
+            float px = u * c.width - .5f, py = v * c.height - .5f; int ix = static_cast<int>(std::floor(px)), iy = static_cast<int>(std::floor(py));
+            float tx = px - ix, ty = py - iy; Pixel sum{};
+            for (int oy = 0; oy < 2; ++oy) for (int ox = 0; ox < 2; ++ox) {
+                int sx = (ix + ox + c.width) % c.width; auto q = premultiply(fetch(*src, sx, iy + oy, edge), src->kind); float weight = (ox ? tx : 1 - tx) * (oy ? ty : 1 - ty);
+                for (int k = 0; k < 4; ++k) sum[k] += q[k] * weight;
+            }
+            return unpremultiply(sum, src->kind);
+        };
+        return pixels(src->kind, [&](int x, int y) {
+            float u = (x + .5f) / c.width, v = (y + .5f) / c.height;
+            if (mode == "to_polar") { float a = u * 2 * pi + offset, r = v * radius; return src->sample(cx + std::cos(a) * r * unit / c.width, cy + std::sin(a) * r * unit / c.height, edge); }
+            float dx = (u - cx) * c.width / unit, dy = (v - cy) * c.height / unit, r = std::hypot(dx, dy);
+            if (r > radius + .5f / unit) return Pixel{0, 0, 0, 0};
+            auto p = strip((std::atan2(dy, dx) - offset) / (2 * pi), std::min(1.0f, r / radius)); float coverage = clamp((radius - r) * unit + .5f);
+            if (src->kind == Kind::Color) p[3] *= coverage; else for (int k = 0; k < 3; ++k) p[k] *= coverage;
+            return p;
+        });
+    }
+    if (op == "edge_detect") {
+        std::string channel = n["channel"], method = n["method"], edge = n["edge"]; float strength = n["strength"]; bool clipped = n["clamp"];
+        return pixels(Kind::Scalar, [&](int x, int y) {
+            auto at = [&](int dx, int dy) { return component(fetch(*src, x + dx, y + dy, edge), channel); };
+            double value;
+            if (method == "laplacian") value = std::abs(double(at(-1,0)) + at(1,0) + at(0,-1) + at(0,1) - 4.0 * at(0,0));
+            else {
+                double a = method == "scharr" ? 3 : 1, b = method == "scharr" ? 10 : 2;
+                double gx = a * (double(at(1,-1)) - at(-1,-1) + at(1,1) - at(-1,1)) + b * (double(at(1,0)) - at(-1,0));
+                double gy = a * (double(at(-1,1)) - at(-1,-1) + at(1,1) - at(1,-1)) + b * (double(at(0,1)) - at(0,-1));
+                value = std::hypot(gx, gy) / (2 * a + b);
+            }
+            value *= strength; if (clipped) value = std::clamp(value, 0.0, 1.0);
+            if (!std::isfinite(value) || value > std::numeric_limits<float>::max()) throw std::runtime_error("nonfinite edge response");
+            return gray(static_cast<float>(value));
+        });
+    }
+    if (op == "stroke") {
+        std::string channel = n["channel"], edge = n["edge"], position = n["position"]; float threshold = n["threshold"], width = n["width"], softness = n["softness"];
+        bool include = n["include_source"], tinted = n.contains("color"); Pixel tint = tinted ? color(n["color"]) : gray(1);
+        Kind kind = tinted || (include && src->kind == Kind::Color) ? Kind::Color : Kind::Scalar;
+        auto mask = pixels(Kind::Scalar, [&](int x, int y) { return gray(component(src->get(x,y), channel)); });
+        auto inside = position != "outside" ? distanceField(mask, false, threshold, edge, c) : ImagePtr{};
+        auto outside = position != "inside" ? distanceField(mask, true, threshold, edge, c) : ImagePtr{};
+        return pixels(kind, [&](int x, int y) {
+            bool foreground = mask->get(x,y)[0] >= threshold; float coverage = 0, extent = position == "center" ? width * .5f : width;
+            if (width > 0 && ((foreground && inside) || (!foreground && outside))) {
+                float distance = (foreground ? inside : outside)->get(x,y)[0] - .5f;
+                coverage = 1 - smooth((distance - extent + .5f) / (softness + 1));
+            }
+            if (kind == Kind::Scalar) return gray(include ? std::max(mask->get(x,y)[0], coverage) : coverage);
+            auto p = tint; p[3] *= coverage;
+            return include ? composite(src->get(x,y), p, "over", 1, false) : p;
+        });
+    }
+    if (op == "glow") {
+        std::string channel = n["channel"], mode = n["mode"]; float threshold = n["threshold"], strength = n["strength"]; bool include = n["include_source"], tinted = n.contains("color");
+        Pixel tint = tinted ? color(n["color"]) : gray(1); Kind kind = tinted || (include && src->kind == Kind::Color) ? Kind::Color : Kind::Scalar;
+        auto emission = pixels(Kind::Scalar, [&](int x, int y) { return gray(std::max(0.0f, clamp(component(src->get(x,y), channel)) - threshold)); });
+        auto blurred = advanced(normalizedNode("glow.blur", {{"op","gaussian_blur"},{"input","emission"},{"sigma",n["radius"]},{"edge",n["edge"]}}), {{"emission",emission}}, c);
+        return pixels(kind, [&](int x, int y) {
+            auto source = src->get(x,y); float base = clamp(component(source, channel)), amount = blurred->get(x,y)[0];
+            if (mode == "outer") amount *= 1 - base; else if (mode == "inner") amount = emission->get(x,y)[0] * (1 - amount);
+            amount *= strength;
+            if (kind == Kind::Scalar) return gray(amount + (include ? component(source, channel) : 0));
+            auto p = include ? premultiply(source, src->kind) : Pixel{0,0,0,0};
+            float alpha = clamp(amount * tint[3]); p[3] = clamp(p[3]) + alpha * (1 - clamp(p[3]));
+            for (int k = 0; k < 3; ++k) p[k] += tint[k] * amount * tint[3];
+            return unpremultiply(p, Kind::Color);
+        });
+    }
     if (op == "math") {
         auto b = n.contains("b") ? inputs.at(n["b"].get<std::string>()) : ImagePtr{}; float value = n["value"], lo = n["range"][0], hi = n["range"][1]; int steps = n["steps"]; std::string mode = n["mode"];
         Kind kind = src->kind == Kind::Color || (b && b->kind == Kind::Color) ? Kind::Color : (src->kind == Kind::Normal || (b && b->kind == Kind::Normal) ? Kind::Normal : Kind::Scalar);
