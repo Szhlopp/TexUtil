@@ -1,0 +1,4 @@
+newmtl body
+Kd .6 .6 .6
+newmtl band
+Kd .2 .2 .2

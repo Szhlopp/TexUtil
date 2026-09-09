@@ -1,0 +1,61 @@
+{
+  "size": 512,
+  "tile": true,
+  "imports": {
+    "wood": "../wood.json"
+  },
+  "nodes": {},
+  "outputs": {
+    "color.png": "wood.color",
+    "roughness.png": {
+      "node": "wood.roughness",
+      "bits": 16
+    },
+    "normal.png": {
+      "node": "wood.normal",
+      "bits": 16
+    },
+    "material.mtlx": {
+      "type": "materialx",
+      "name": "PreviewWood",
+      "inputs": {
+        "base_color": {
+          "texture": "color.png"
+        },
+        "specular_roughness": {
+          "texture": "roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5
+      },
+      "normal": {
+        "texture": "normal.png",
+        "convention": "directx"
+      }
+    },
+    "preview.png": {
+      "type": "preview",
+      "material": "material.mtlx",
+      "model": "../../assets/models/preview-torus.obj",
+      "environment": "studio",
+      "views": [
+        [
+          35,
+          0,
+          0
+        ],
+        [
+          35,
+          60,
+          0
+        ],
+        [
+          60,
+          120,
+          0
+        ]
+      ],
+      "size": 384
+    }
+  }
+}

@@ -26,10 +26,13 @@
 /texutil_sheet_tests
 /texutil_materialx_tests
 /texutil_import_tests
+/texutil_model_tests
 
 # Compiled C/C++ artifacts.
 *.o
 *.obj
+!assets/models/*.obj
+!tests/fixtures/models/*.obj
 *.a
 *.lib
 *.so

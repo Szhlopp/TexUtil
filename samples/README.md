@@ -51,3 +51,17 @@ They render their labeled graphics directly with TexUtil; no Pillow step is need
 `stone.json`, `wood.json`, `snow.json`, `cork.json`, `glass.json`, `potion.json`, `handled-glass.json` and `birch.json`
 also emit MaterialX materials. See [MaterialX export](../docs/MATERIALX.md) for
 custom shader parameters and Maya usage. Copy each `.mtlx` with its referenced PNGs.
+
+## Mesh workflows
+
+The `models/` subdirectory contains workflows with additional inputs:
+
+- `preview.json`: UV-mapped wood on the included torus, three angles, studio HDR.
+- `triplanar.json`: the same material using object-space triplanar projection.
+- `geometry-maps.json`: displays baked geometry maps and derives a cavity mask.
+
+The first two need a Filament-enabled build. Before running the third, run
+`./build/texutil model bake assets/models/preview-torus.obj --out out/model-bake --size 512`.
+Then render with `./build/texutil samples/models/geometry-maps.json --out out/geometry`.
+See [model setup and controls](../docs/MODELS.md). These are additional standalone
+recipes, with no synchronized `examples/` counterparts.

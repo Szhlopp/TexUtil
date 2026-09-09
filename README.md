@@ -7,6 +7,14 @@ operations, floating-point intermediates, and a command line designed for agents
 
 Explore the [sample graphs](samples/README.md) to generate your own materials.
 
+[Model tools and previews](docs/MODELS.md) support static OBJ, FBX, glTF and GLB:
+check UVs, unwrap with xatlas, and bake curvature, AO, thickness and material-ID
+maps for use in graphs. The optional Filament renderer previews materials under
+studio, outdoor or custom HDR lighting, with object rotation, multiple views and
+UV or triplanar projection. See [the preview recipe](samples/models/preview.json)
+and [triplanar recipe](samples/models/triplanar.json). GPU preview setup is separate
+from the CPU build below.
+
 ## Build on macOS
 
 Install Apple Command Line Tools and [Homebrew](https://brew.sh), then install the
@@ -68,8 +76,10 @@ cmake --build build --parallel 8
 ctest --test-dir build --output-on-failure
 ```
 
-On all platforms, the first configure downloads pinned FastNoise2 1.1.1 and
-nlohmann/json 3.12.0. FastNoise2 also fetches a pinned FastSIMD revision. Subsequent
+On all platforms, the first configure downloads pinned FastNoise2 1.1.1,
+nlohmann/json 3.12.0 and the model dependencies in
+[third-party notices](docs/THIRD_PARTY.md). FastNoise2 also fetches a pinned FastSIMD
+revision. Subsequent
 builds reuse the build cache. Use separate build directories for different platforms
 and toolchains. Texture generation and MaterialX export require no GUI or GPU.
 

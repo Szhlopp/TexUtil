@@ -456,6 +456,28 @@ all referenced PNGs together, preserving relative paths. See
 other inputs. The exporter does not render a sphere; SDK validation and shader
 generation do not prove a host application renders the material correctly.
 
+## Model operations and GPU previews
+
+See [model documentation](docs/MODELS.md) before authoring a preview. CPU commands:
+`model check-uvs FILE --json`, `model uv FILE --out new.obj`, and
+`model bake FILE --out out/bake --maps curvature,ao,thickness,materialids`.
+UV unwrap writes a new OBJ/MTL and refuses existing paths. Use that copy consistently
+for baking and previewing. Thickness requires a closed, outward-facing mesh.
+
+Import the bake's `maps.json` through normal graph `imports`; paths to its PNGs
+resolve beside that JSON. Bakes are reusable disk assets. `object_normal` is an
+object-space geometry map, not a tangent-space MaterialX detail normal.
+
+Filament-enabled builds accept `type:preview` PNG outputs referencing a MaterialX
+output filename plus a `model` path. Choose `environment:studio`, `outdoor`, or a
+custom HDR path; `rotation:[pitch,yaw,roll]` or `views` for a labeled angle sheet.
+`projection:triplanar` works without UVs; `projection_scale` controls repeats per
+mesh unit and `projection_blend` controls axis transitions. It affects preview
+sampling only, not exported MaterialX. UV-baked masks must use UV projection.
+Use saved recipes in `samples/models/`; `geometry-maps.json` requires running its
+bake command first. Report unsupported-input preview warnings and remember that
+Filament's PBR approximation does not establish identical Arnold/Maya rendering.
+
 ## Tiling, performance and delivery checks
 
 - Use `tile:true` for periodic noise, `edge:"repeat"` for appropriate sampling,

@@ -1,0 +1,93 @@
+material {
+    name : TexUtilPreview,
+    shadingModel : lit,
+    doubleSided : true,
+    refractionMode : cubemap,
+    refractionType : solid,
+    requires : [ uv0 ],
+    variables : [ objectPosition ],
+    parameters : [
+        { type : bool, name : triplanar },
+        { type : float, name : projectionScale },
+        { type : float, name : projectionBlend },
+        { type : mat3, name : objectRotation },
+        { type : sampler2d, name : colorMap },
+        { type : sampler2d, name : roughnessMap },
+        { type : sampler2d, name : metalnessMap },
+        { type : sampler2d, name : normalMap },
+        { type : sampler2d, name : transmissionMap },
+        { type : sampler2d, name : emissionMap },
+        { type : sampler2d, name : transmissionColorMap },
+        { type : float3, name : baseColor },
+        { type : float3, name : emissionColor },
+        { type : float3, name : transmissionColor },
+        { type : float, name : transmissionDepth },
+        { type : float, name : roughness },
+        { type : float, name : metalness },
+        { type : float, name : normalScale },
+        { type : float, name : normalSign },
+        { type : float, name : transmission },
+        { type : float, name : emission },
+        { type : float, name : ior },
+        { type : float, name : thickness },
+        { type : float, name : coat },
+        { type : float, name : coatRoughness }
+    ]
+}
+vertex {
+    void materialVertex(inout MaterialVertexInputs material) {
+        material.objectPosition = getPosition();
+    }
+}
+fragment {
+    vec4 sampleMap(sampler2D map, vec2 uv, vec3 p, vec3 signs, vec3 weights) {
+        if (!materialParams.triplanar) return texture(map, uv);
+        return texture(map, vec2(-p.z * signs.x, p.y)) * weights.x
+             + texture(map, vec2(p.x, -p.z * signs.y)) * weights.y
+             + texture(map, vec2(p.x * signs.z, p.y)) * weights.z;
+    }
+    vec2 normalSlope(vec2 uv) {
+        vec3 n = texture(materialParams_normalMap, uv).xyz * 2.0 - 1.0;
+        return n.xy * vec2(1.0, materialParams.normalSign) / max(n.z, 0.1);
+    }
+    void material(inout MaterialInputs material) {
+        vec2 uv = getUV0();
+        vec3 p = variable_objectPosition.xyz * materialParams.projectionScale;
+        vec3 objectNormal = normalize(transpose(materialParams.objectRotation) * getWorldGeometricNormalVector());
+        vec3 signs = mix(vec3(-1.0), vec3(1.0), greaterThanEqual(objectNormal, vec3(0.0)));
+        vec3 weights = pow(abs(objectNormal), vec3(materialParams.projectionBlend));
+        weights /= max(weights.x + weights.y + weights.z, 0.0001);
+        if (materialParams.triplanar) {
+            vec2 x = normalSlope(vec2(-p.z * signs.x, p.y));
+            vec2 y = normalSlope(vec2(p.x, -p.z * signs.y));
+            vec2 z = normalSlope(vec2(p.x * signs.z, p.y));
+            // Blend surface slopes, then project onto the actual surface tangent plane.
+            // A neutral normal map leaves the geometric normal exactly unchanged.
+            vec3 slope = vec3(0.0, x.y, -x.x * signs.x) * weights.x
+                       + vec3(y.x, 0.0, -y.y * signs.y) * weights.y
+                       + vec3(z.x * signs.z, z.y, 0.0) * weights.z;
+            slope -= objectNormal * dot(objectNormal, slope);
+            vec3 worldNormal = materialParams.objectRotation * normalize(objectNormal + slope * materialParams.normalScale);
+            material.normal = normalize(transpose(getWorldTangentFrame()) * worldNormal);
+        } else {
+            vec3 n = texture(materialParams_normalMap, uv).xyz * 2.0 - 1.0;
+            n.xy *= vec2(materialParams.normalScale, materialParams.normalScale * materialParams.normalSign);
+            material.normal = normalize(n);
+        }
+        prepareMaterial(material);
+        material.baseColor = vec4(sampleMap(materialParams_colorMap, uv, p, signs, weights).rgb * materialParams.baseColor, 1.0);
+        material.roughness = clamp(sampleMap(materialParams_roughnessMap, uv, p, signs, weights).r * materialParams.roughness, 0.0, 1.0);
+        material.metallic = clamp(sampleMap(materialParams_metalnessMap, uv, p, signs, weights).r * materialParams.metalness, 0.0, 1.0);
+        material.transmission = clamp(sampleMap(materialParams_transmissionMap, uv, p, signs, weights).r * materialParams.transmission, 0.0, 1.0);
+        material.ior = materialParams.ior;
+#if TEXUTIL_THIN
+        material.microThickness = materialParams.thickness;
+#else
+        material.thickness = materialParams.thickness;
+#endif
+        material.absorption = -log(clamp(sampleMap(materialParams_transmissionColorMap, uv, p, signs, weights).rgb * materialParams.transmissionColor, vec3(0.0001), vec3(1.0))) / materialParams.transmissionDepth;
+        material.clearCoat = materialParams.coat;
+        material.clearCoatRoughness = materialParams.coatRoughness;
+        material.emissive = vec4(sampleMap(materialParams_emissionMap, uv, p, signs, weights).rgb * materialParams.emissionColor * materialParams.emission, 0.0);
+    }
+}

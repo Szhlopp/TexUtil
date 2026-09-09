@@ -47,7 +47,9 @@ public:
             require(it.value().get<std::string>().find('\0')==std::string::npos,"import filenames cannot contain NUL characters");
             for(auto n=nodes.begin();n!=nodes.end();++n)require(n.key()!=it.key()&&n.key().rfind(it.key()+".",0)!=0,"local node '"+n.key()+"' collides with import namespace '"+it.key()+"'");
             require(++instances_<=128,"maximum 128 import instances");
-            auto file=std::filesystem::canonical(base/it.value().get<std::string>());
+            std::error_code pathError;
+            auto file=std::filesystem::canonical(base/it.value().get<std::string>(),pathError);
+            require(!pathError,"cannot resolve '"+it.value().get<std::string>()+"': "+pathError.message());
             require(active_.insert(file).second,"file cycle detected at '"+file.string()+"'");
             if(!documents_.count(file)) {
                 require(std::filesystem::is_regular_file(file),"import must be a regular JSON file");
