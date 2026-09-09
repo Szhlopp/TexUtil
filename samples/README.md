@@ -12,6 +12,7 @@ them. Generated images belong under `out/`, which is ignored along with build pr
 
 | Sample | What it produces |
 | --- | --- |
+| `birch.json` | Pale birch bark, horizontal marks, healed scars and separate cut-end maps for one log. Includes MaterialX and a sheet; see [controls and optional Blender preview](../docs/BIRCH.md). |
 | `handled-glass.json` | Imports glass, dust and fingerprints to make a reusable worn-glass material. See [imports](../docs/IMPORTS.md). |
 | `dust.json` | Subtle tileable dust with fine particles, flecks, lint and faint buildup. See [controls](../docs/DUST.md). |
 | `fingerprints-scattered.json` | Scattered fingerprint masks with varying intensity, rotation and size, plus edge wrapping. |
@@ -44,9 +45,9 @@ CLI `--size` overrides the saved resolution. Simulation iterations, pixel distan
 and noise frequencies still need tuning for another resolution. See the large
 texture notes in the project README before attempting a 16384-square erosion job.
 
-The five gallery/comparison samples, `snow.json`, `cork.json`, `glass.json`, `potion.json`, `dust.json` and `handled-glass.json` include native `type:sheet` outputs.
+The five gallery/comparison samples, `snow.json`, `cork.json`, `glass.json`, `potion.json`, `dust.json`, `handled-glass.json` and `birch.json` include native `type:sheet` outputs.
 They render their labeled graphics directly with TexUtil; no Pillow step is needed.
 
-`stone.json`, `wood.json`, `snow.json`, `cork.json`, `glass.json`, `potion.json` and `handled-glass.json`
+`stone.json`, `wood.json`, `snow.json`, `cork.json`, `glass.json`, `potion.json`, `handled-glass.json` and `birch.json`
 also emit MaterialX materials. See [MaterialX export](../docs/MATERIALX.md) for
 custom shader parameters and Maya usage. Copy each `.mtlx` with its referenced PNGs.

@@ -137,10 +137,15 @@ including MaterialX and a comparison sheet. See [import mechanics](docs/IMPORTS.
 ## Available recipes and useful primitives
 
 Start with [samples/README.md](samples/README.md). Material recipes include `stone`,
-`wood`, `snow`, `cork`, `glass`, `potion` and `handled-glass`. `terrain`, `forest` and
+`wood`, `birch`, `snow`, `cork`, `glass`, `potion` and `handled-glass`. `terrain`, `forest` and
 `erosion` demonstrate heightfield weathering. `tiles`, `ornament`, `stamps` and
 `warped` show placement and deformation. The node, preset and effect galleries
 demonstrate the remaining controls.
+
+`birch.json` includes bark and separate cut-end maps for one log. The optional
+`tools/render_birch.py` builds an HDR-lit single-log preview in a separate Blender
+background process; see [birch sample](docs/BIRCH.md). TexUtil itself still needs
+no Blender installation to generate the maps or MaterialX files.
 
 Reusable wear graphs are `dust.json` (`dust.dust` when imported as `dust`),
 `fingerprint.json` (node `fingerprint`), and `fingerprints-scattered.json`
@@ -316,6 +321,67 @@ roughness to disguise render noise. Record the renderer, environment, exposure,
 view transform and any display boosts used for the preview. Keep HDR lighting in
 the scene, separate from the unlit exported maps; TexUtil's sheets and MaterialX
 exports do not automatically create an HDR-lit 3D scene.
+
+## Run Blender previews in a background process
+
+Detect the current operating system, shell and installed tools before constructing
+commands. Do not assume macOS, a Unix shell, a particular installation directory
+or that `blender` is on PATH. Use Blender's own executable and bundled Python for
+`bpy` scripts. Discover `blender`/`blender.exe` using the shell's executable lookup
+(for example, `Get-Command blender` in PowerShell or `command -v blender` in a POSIX
+shell), then inspect installation locations appropriate to that host if necessary.
+Use the actual TexUtil build output for the selected generator and configuration.
+Quote paths using the active shell's rules; PowerShell requires `&` to invoke a
+quoted executable path. Blender is an optional preview dependency, not part of
+TexUtil's texture-generation runtime.
+
+From the repository root, use the discovered executables with these arguments.
+The angle-bracket names below are placeholders, not literal shell commands:
+
+```text
+<texutil executable> samples/birch.json --out out/birch --threads 8
+<blender executable> --background --factory-startup --python-exit-code 1 --python tools/render_birch.py -- --out out/birch --samples 96
+```
+
+Run generated preview scripts in their own background process. `--factory-startup`
+gives a predictable starting scene and preferences for that process; it does not
+make destructive script operations safe inside the user's interactive session.
+The birch script deletes its starting scene. Do not run it in a user's open file
+or save over an existing user scene. Write scripts to `tools/` and renders, logs
+and `.blend` files to a dedicated ignored `out/` directory.
+
+Blender processes arguments in order. Put `--python-exit-code 1` before `--python`
+so script exceptions return failure. Arguments after `--` belong to the script.
+When rendering an existing `.blend` with CLI options, load the file before setting
+render overrides and put the render action last. A script that calls
+`bpy.ops.render.render(write_still=True)` already initiates the render; do not add
+another CLI render action. See the official
+[command-line argument reference](https://docs.blender.org/manual/en/4.0/advanced/command_line/arguments.html).
+
+For reproducible preview scripts:
+
+- Resolve input/output paths explicitly and fail early if maps or HDRs are missing.
+  Locate bundled HDRs through `bpy.utils.system_resource('DATAFILES')`, not a fixed
+  Blender version folder. Accept an explicit HDR path for installations without
+  those assets. Do not silently replace requested HDR lighting with a flat world.
+- Set the active camera, renderer, device, resolution percentage, samples, output
+  format/path, exposure and view transform explicitly. Cycles CPU is a useful
+  baseline; background mode alone does not select CPU or prove GPU availability.
+  Use a small draft first, then render the final image. Bound worker counts to
+  avoid saturating the desktop, and record settings that affect appearance.
+- Build materials with explicit texture color spaces. For TexUtil DirectX normal
+  maps, read Non-Color data, flip green once (`G = 1 - G`), then use a tangent-space
+  Normal Map node. Do not treat the RGB normal texture as a height/bump input.
+- Save the reproducible scene and call `render(write_still=True)` to save the PNG.
+  Absolute map/HDR paths work locally but require the same files later. Pack
+  resources or establish portable relative paths when delivering a movable scene.
+  Check external HDR licensing before bundling it with repository assets.
+
+Capture process output and wait for completion. Verify the exit status, that the
+expected image was freshly written, its dimensions, and its appearance. A saved
+`.blend` or a zero exit code alone is insufficient evidence of a finished render.
+Inspect the image for missing textures, framing, normal direction and sampling
+noise; report DCC rendering separately from MaterialX SDK validation.
 
 ## Map semantics, ranges and color management
 

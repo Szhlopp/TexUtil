@@ -1,0 +1,872 @@
+{
+  "size": 2048,
+  "seed": 724,
+  "tile": true,
+  "nodes": {
+    "paper-mottle": {
+      "op": "clouds",
+      "scale": 9,
+      "seed": 724,
+      "octaves": 3,
+      "stretch": [
+        1,
+        2.3
+      ],
+      "gain": 0.4
+    },
+    "paper-grain": {
+      "op": "clouds",
+      "scale": 145,
+      "seed": 184,
+      "octaves": 3,
+      "gain": 0.35
+    },
+    "warp-x": {
+      "op": "clouds",
+      "scale": 17,
+      "seed": 828,
+      "octaves": 3
+    },
+    "warp-y": {
+      "op": "clouds",
+      "scale": 31,
+      "seed": 912,
+      "octaves": 3
+    },
+    "paper-sheets": {
+      "op": "clouds",
+      "scale": 23,
+      "seed": 546,
+      "octaves": 3,
+      "stretch": [
+        2.8,
+        1
+      ],
+      "gain": 0.5
+    },
+    "peeling": {
+      "op": "range_mask",
+      "input": "paper-sheets",
+      "range": [
+        0,
+        0.32
+      ],
+      "softness": 0.018
+    },
+    "peel-edge": {
+      "op": "edge_detect",
+      "input": "peeling",
+      "strength": 1.8,
+      "edge": "repeat"
+    },
+    "slit": {
+      "op": "shape",
+      "type": "capsule",
+      "size": [
+        0.88,
+        0.54
+      ],
+      "softness": 0.15
+    },
+    "lenticels-raw": {
+      "op": "scatter",
+      "input": "slit",
+      "count": 1050,
+      "size": [
+        0.042,
+        0.0017
+      ],
+      "size_jitter": 0.78,
+      "rotation_jitter": 2,
+      "value_range": [
+        0.25,
+        0.95
+      ],
+      "seed": 263,
+      "wrap": true
+    },
+    "lenticels": {
+      "op": "warp",
+      "input": "lenticels-raw",
+      "x": "warp-x",
+      "y": "warp-y",
+      "strength": 0.0012,
+      "edge": "repeat"
+    },
+    "long-slits": {
+      "op": "scatter",
+      "input": "slit",
+      "count": 72,
+      "size": [
+        0.1,
+        0.003
+      ],
+      "size_jitter": 0.55,
+      "rotation_jitter": 2,
+      "value_range": [
+        0.4,
+        0.9
+      ],
+      "seed": 907,
+      "wrap": true
+    },
+    "marks": {
+      "op": "blend",
+      "a": "marks-original",
+      "b": "small-chips-warped",
+      "mode": "max"
+    },
+    "scar-disc": {
+      "op": "shape",
+      "type": "circle",
+      "size": [
+        0.7,
+        0.73
+      ],
+      "softness": 0.16
+    },
+    "scar-distortion": {
+      "op": "clouds",
+      "scale": 9,
+      "seed": 564,
+      "octaves": 3
+    },
+    "scar-shape": {
+      "op": "warp",
+      "input": "scar-disc",
+      "x": "scar-distortion",
+      "y": "warp-y",
+      "strength": 0.11,
+      "edge": "transparent"
+    },
+    "scar-radius": {
+      "op": "gradient",
+      "type": "radial",
+      "radius": 0.46
+    },
+    "scar-rings-scale": {
+      "op": "math",
+      "input": "scar-radius",
+      "mode": "multiply",
+      "value": 7
+    },
+    "scar-rings": {
+      "op": "math",
+      "input": "scar-rings-scale",
+      "mode": "fract"
+    },
+    "scar-ring-relief": {
+      "op": "levels",
+      "input": "scar-rings",
+      "out": [
+        0.15,
+        1
+      ]
+    },
+    "scar-source": {
+      "op": "blend",
+      "a": "scar-shape",
+      "b": "scar-ring-relief",
+      "mode": "multiply"
+    },
+    "scars": {
+      "op": "stamp",
+      "input": "scar-source",
+      "points": [
+        {
+          "position": [
+            0.24,
+            0.16
+          ],
+          "size": [
+            0.19,
+            0.044
+          ],
+          "angle": -9
+        },
+        {
+          "position": [
+            0.61,
+            0.37
+          ],
+          "size": [
+            0.17,
+            0.038
+          ],
+          "angle": 8
+        },
+        {
+          "position": [
+            0.29,
+            0.59
+          ],
+          "size": [
+            0.22,
+            0.055
+          ],
+          "angle": -12
+        },
+        {
+          "position": [
+            0.77,
+            0.81
+          ],
+          "size": [
+            0.15,
+            0.038
+          ],
+          "angle": 12
+        },
+        {
+          "position": [
+            0.94,
+            0.49
+          ],
+          "size": [
+            0.16,
+            0.043
+          ],
+          "angle": -6
+        }
+      ],
+      "wrap": true
+    },
+    "scar-mask": {
+      "op": "stamp",
+      "input": "scar-shape",
+      "points": [
+        {
+          "position": [
+            0.24,
+            0.16
+          ],
+          "size": [
+            0.19,
+            0.044
+          ],
+          "angle": -9
+        },
+        {
+          "position": [
+            0.61,
+            0.37
+          ],
+          "size": [
+            0.17,
+            0.038
+          ],
+          "angle": 8
+        },
+        {
+          "position": [
+            0.29,
+            0.59
+          ],
+          "size": [
+            0.22,
+            0.055
+          ],
+          "angle": -12
+        },
+        {
+          "position": [
+            0.77,
+            0.81
+          ],
+          "size": [
+            0.15,
+            0.038
+          ],
+          "angle": 12
+        },
+        {
+          "position": [
+            0.94,
+            0.49
+          ],
+          "size": [
+            0.16,
+            0.043
+          ],
+          "angle": -6
+        }
+      ],
+      "wrap": true
+    },
+    "scar-margin": {
+      "op": "gaussian_blur",
+      "input": "scar-mask",
+      "sigma": 5,
+      "edge": "repeat"
+    },
+    "body-height": {
+      "op": "levels",
+      "input": "paper-mottle",
+      "out": [
+        0.485,
+        0.515
+      ]
+    },
+    "paper-relief": {
+      "op": "levels",
+      "input": "paper-grain",
+      "out": [
+        -0.004,
+        0.004
+      ]
+    },
+    "fine-height": {
+      "op": "blend",
+      "a": "body-height",
+      "b": "paper-relief",
+      "mode": "add"
+    },
+    "peel-depth": {
+      "op": "levels",
+      "input": "peeling",
+      "out": [
+        0,
+        0.045
+      ]
+    },
+    "peeled-height": {
+      "op": "blend",
+      "a": "fine-height",
+      "b": "peel-depth",
+      "mode": "subtract"
+    },
+    "curl-height": {
+      "op": "levels",
+      "input": "peel-edge",
+      "out": [
+        0,
+        0.025
+      ]
+    },
+    "paper-height": {
+      "op": "blend",
+      "a": "peeled-height",
+      "b": "curl-height",
+      "mode": "add"
+    },
+    "mark-depth": {
+      "op": "levels",
+      "input": "marks",
+      "out": [
+        0,
+        0.022
+      ]
+    },
+    "marked-height": {
+      "op": "blend",
+      "a": "paper-height",
+      "b": "mark-depth",
+      "mode": "subtract"
+    },
+    "scar-depth": {
+      "op": "levels",
+      "input": "scar-mask",
+      "out": [
+        0,
+        0.09
+      ]
+    },
+    "scarred-height": {
+      "op": "blend",
+      "a": "marked-height",
+      "b": "scar-depth",
+      "mode": "subtract"
+    },
+    "scar-ridges": {
+      "op": "levels",
+      "input": "scars",
+      "out": [
+        0,
+        0.035
+      ]
+    },
+    "height": {
+      "op": "blend",
+      "a": "scarred-height",
+      "b": "scar-ridges",
+      "mode": "add"
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.026,
+      "convention": "directx",
+      "edge": "repeat"
+    },
+    "roughness-base": {
+      "op": "levels",
+      "input": "paper-grain",
+      "out": [
+        0.59,
+        0.78
+      ]
+    },
+    "rough-scar": {
+      "op": "constant",
+      "value": 0.87
+    },
+    "roughness": {
+      "op": "blend",
+      "a": "roughness-base",
+      "b": "rough-scar",
+      "mode": "mix",
+      "mask": "scar-mask"
+    },
+    "paper-white": {
+      "op": "ramp",
+      "input": "paper-mottle",
+      "stops": [
+        [
+          0,
+          "#b9bcaf"
+        ],
+        [
+          0.35,
+          "#d6d9cf"
+        ],
+        [
+          0.62,
+          "#e5e7df"
+        ],
+        [
+          1,
+          "#eeeeE6"
+        ]
+      ],
+      "interpolation": "smooth"
+    },
+    "under-paper": {
+      "op": "ramp",
+      "input": "paper-grain",
+      "stops": [
+        [
+          0,
+          "#a3957c"
+        ],
+        [
+          0.5,
+          "#cabea5"
+        ],
+        [
+          1,
+          "#ddd3bb"
+        ]
+      ],
+      "interpolation": "smooth"
+    },
+    "peeled-color": {
+      "op": "blend",
+      "a": "paper-white",
+      "b": "under-paper",
+      "mode": "mix",
+      "mask": "peeling",
+      "opacity": 0.72
+    },
+    "mark-brown": {
+      "op": "constant",
+      "value": "#383a32"
+    },
+    "marked-color": {
+      "op": "blend",
+      "a": "peeled-color",
+      "b": "mark-brown",
+      "mode": "mix",
+      "mask": "marks",
+      "opacity": 0.95
+    },
+    "scar-halo-color": {
+      "op": "constant",
+      "value": "#a29d89"
+    },
+    "halo-color": {
+      "op": "blend",
+      "a": "marked-color",
+      "b": "scar-halo-color",
+      "mode": "mix",
+      "mask": "scar-margin",
+      "opacity": 0.5
+    },
+    "scar-charcoal": {
+      "op": "ramp",
+      "input": "paper-grain",
+      "stops": [
+        [
+          0,
+          "#302d24"
+        ],
+        [
+          0.45,
+          "#484537"
+        ],
+        [
+          0.7,
+          "#6d6a56"
+        ],
+        [
+          1,
+          "#9e9680"
+        ]
+      ],
+      "interpolation": "smooth"
+    },
+    "color": {
+      "op": "blend",
+      "a": "halo-color",
+      "b": "scar-grained-color",
+      "mode": "mix",
+      "mask": "scar-mask"
+    },
+    "end-radius": {
+      "op": "gradient",
+      "type": "radial",
+      "radius": 0.68,
+      "center": [
+        0.46,
+        0.53
+      ]
+    },
+    "end-distorted": {
+      "op": "warp",
+      "input": "end-radius",
+      "x": "warp-x",
+      "y": "warp-y",
+      "strength": 0.014,
+      "edge": "clamp"
+    },
+    "end-ring-scale": {
+      "op": "math",
+      "input": "end-distorted",
+      "mode": "multiply",
+      "value": 23
+    },
+    "end-ring-phase": {
+      "op": "math",
+      "input": "end-ring-scale",
+      "mode": "fract"
+    },
+    "end-rings": {
+      "op": "range_mask",
+      "input": "end-ring-phase",
+      "range": [
+        0.8,
+        1
+      ],
+      "softness": 0.12
+    },
+    "end-height": {
+      "op": "levels",
+      "input": "end-rings",
+      "out": [
+        0.5,
+        0.485
+      ]
+    },
+    "end-normal": {
+      "op": "normal",
+      "input": "end-height",
+      "strength": 0.009,
+      "convention": "directx",
+      "edge": "clamp"
+    },
+    "end-wood": {
+      "op": "ramp",
+      "input": "paper-mottle",
+      "stops": [
+        [
+          0,
+          "#b09870"
+        ],
+        [
+          0.5,
+          "#d1bd92"
+        ],
+        [
+          1,
+          "#e2d0a5"
+        ]
+      ],
+      "interpolation": "smooth"
+    },
+    "end-ring-color": {
+      "op": "constant",
+      "value": "#998059"
+    },
+    "end-color": {
+      "op": "blend",
+      "a": "end-wood",
+      "b": "end-ring-color",
+      "mode": "mix",
+      "mask": "end-rings",
+      "opacity": 0.23
+    },
+    "normal-centered": {
+      "op": "math",
+      "input": "normal",
+      "mode": "subtract",
+      "value": 0.5
+    },
+    "normal-decoded": {
+      "op": "math",
+      "input": "normal-centered",
+      "mode": "multiply",
+      "value": 2
+    },
+    "light-vector": {
+      "op": "constant",
+      "value": [
+        -2.114010124623848,
+        -0.5585863192829109,
+        11.06650791000382
+      ]
+    },
+    "light-components": {
+      "op": "math",
+      "input": "normal-decoded",
+      "b": "light-vector",
+      "mode": "multiply"
+    },
+    "lambert": {
+      "op": "grayscale",
+      "input": "light-components"
+    },
+    "diffuse": {
+      "op": "math",
+      "input": "lambert",
+      "mode": "clamp",
+      "range": [
+        0,
+        1
+      ]
+    },
+    "diffuse-strength": {
+      "op": "math",
+      "input": "diffuse",
+      "mode": "multiply",
+      "value": 0.8
+    },
+    "lighting": {
+      "op": "math",
+      "input": "diffuse-strength",
+      "mode": "add",
+      "value": 0.28
+    },
+    "lit-preview": {
+      "op": "blend",
+      "a": "color",
+      "b": "lighting",
+      "mode": "multiply"
+    },
+    "height-inspection": {
+      "op": "levels",
+      "input": "height",
+      "out": [
+        0,
+        1
+      ],
+      "in": [
+        0.39,
+        0.54
+      ]
+    },
+    "scar-colored-rings": {
+      "op": "ramp",
+      "input": "scars",
+      "stops": [
+        [
+          0,
+          "#34342c"
+        ],
+        [
+          0.3,
+          "#535347"
+        ],
+        [
+          0.55,
+          "#797764"
+        ],
+        [
+          0.8,
+          "#595b4a"
+        ],
+        [
+          1,
+          "#33362c"
+        ]
+      ]
+    },
+    "scar-grained-color": {
+      "op": "blend",
+      "a": "scar-colored-rings",
+      "b": "scar-charcoal",
+      "mode": "mix",
+      "opacity": 0.32
+    },
+    "small-chips": {
+      "op": "scatter",
+      "input": "slit",
+      "count": 175,
+      "size": [
+        0.016,
+        0.0022
+      ],
+      "size_jitter": 0.72,
+      "rotation_jitter": 12,
+      "value_range": [
+        0.6,
+        1
+      ],
+      "seed": 819,
+      "wrap": true
+    },
+    "small-chips-warped": {
+      "op": "warp",
+      "input": "small-chips",
+      "x": "warp-x",
+      "y": "warp-y",
+      "strength": 0.0007,
+      "edge": "repeat"
+    },
+    "marks-original": {
+      "op": "blend",
+      "a": "lenticels",
+      "b": "long-slits",
+      "mode": "max"
+    },
+    "scar-profile": {
+      "op": "gaussian_blur",
+      "input": "scar-mask",
+      "sigma": 14,
+      "edge": "repeat"
+    }
+  },
+  "outputs": {
+    "birch-color.png": {
+      "node": "color",
+      "bits": 8
+    },
+    "birch-height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "birch-height.pfm": {
+      "node": "height",
+      "bits": 32
+    },
+    "birch-normal.png": {
+      "node": "normal",
+      "bits": 16
+    },
+    "birch-roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "birch-end-color.png": {
+      "node": "end-color",
+      "bits": 8
+    },
+    "birch-end-normal.png": {
+      "node": "end-normal",
+      "bits": 16
+    },
+    "birch-lit.png": {
+      "node": "lit-preview",
+      "bits": 8
+    },
+    "birch-sheet.png": {
+      "type": "sheet",
+      "title": "Birch / pale papery bark and healed scars",
+      "columns": 3,
+      "cell": 384,
+      "padding": 16,
+      "items": [
+        {
+          "node": "lit-preview",
+          "label": "Illustrative diffuse preview"
+        },
+        {
+          "node": "color",
+          "label": "Unlit bark / sRGB"
+        },
+        {
+          "node": "end-color",
+          "label": "Cut end / sRGB"
+        },
+        {
+          "node": "height-inspection",
+          "label": "Height / contrast boosted"
+        },
+        {
+          "node": "normal",
+          "label": "Normal / DirectX"
+        },
+        {
+          "node": "roughness",
+          "label": "Roughness / linear"
+        }
+      ]
+    },
+    "birch.mtlx": {
+      "type": "materialx",
+      "name": "BirchBark",
+      "inputs": {
+        "base_color": {
+          "texture": "birch-color.png"
+        },
+        "specular_roughness": {
+          "texture": "birch-roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5
+      },
+      "normal": {
+        "texture": "birch-normal.png",
+        "convention": "directx"
+      }
+    },
+    "birch-arnold.mtlx": {
+      "type": "materialx",
+      "name": "BirchBark",
+      "inputs": {
+        "base_color": {
+          "texture": "birch-color.png"
+        },
+        "specular_roughness": {
+          "texture": "birch-roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5
+      },
+      "normal": {
+        "texture": "birch-normal.png",
+        "convention": "directx"
+      },
+      "version": "1.39",
+      "texture_paths": "absolute"
+    },
+    "birch-end.mtlx": {
+      "type": "materialx",
+      "name": "BirchEnd",
+      "inputs": {
+        "base_color": {
+          "texture": "birch-end-color.png"
+        },
+        "specular_roughness": 0.74,
+        "metalness": 0,
+        "specular_IOR": 1.5
+      },
+      "normal": {
+        "texture": "birch-end-normal.png",
+        "convention": "directx"
+      }
+    },
+    "birch-profile.png": {
+      "node": "scar-profile",
+      "bits": 16
+    }
+  }
+}
