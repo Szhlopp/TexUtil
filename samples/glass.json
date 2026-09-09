@@ -145,37 +145,9 @@
         ]
       ]
     },
-    "softbox": {
-      "op": "shape",
-      "type": "box",
-      "center": [
-        0.38,
-        0.38
-      ],
-      "size": [
-        0.16,
-        1.6
-      ],
-      "angle": 32,
-      "softness": 0.6
-    },
-    "softbox-wide": {
-      "op": "gaussian_blur",
-      "input": "softbox",
-      "sigma": 28,
-      "edge": "clamp"
-    },
     "reflection-tone": {
       "op": "constant",
       "value": "#d8e9ec"
-    },
-    "reflected-studio": {
-      "op": "blend",
-      "a": "studio-background",
-      "b": "reflection-tone",
-      "mask": "softbox-wide",
-      "mode": "mix",
-      "opacity": 0.55
     },
     "reflection-fringe": {
       "op": "gaussian_blur",
@@ -192,7 +164,7 @@
     },
     "studio-preview": {
       "op": "blend",
-      "a": "reflected-studio",
+      "a": "studio-background",
       "b": "reflection-tone",
       "mask": "scratch-glints",
       "mode": "mix",

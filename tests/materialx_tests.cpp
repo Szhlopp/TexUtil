@@ -30,9 +30,15 @@ void test(const std::filesystem::path& work) {
     check(text.find("colorspace=\"srgb_texture\"")!=std::string::npos,"color texture encoding");
     check(text.find("colorspace=\"lin_rec709\"")!=std::string::npos,"data stays linear");
     check(text.find("1, -1, 1")!=std::string::npos&&text.find("0, 1, 0")!=std::string::npos,"DirectX green inversion");
+    check(text.find("<materialx version=\"1.38\"")!=std::string::npos,"default format remains 1.38");
+    check(text.find("name=\"space\"")==std::string::npos,"normalmap omits obsolete space input for 1.39 compatibility");
+    auto modern=d;modern["outputs"]["materials/test.mtlx"]["version"]="1.39";
+    Graph(modern,".").render([&](const Output& o,const ImagePtr&){if(o.material){check(o.text.find("<materialx version=\"1.39\"")!=std::string::npos,"explicit modern format");check(o.text.find("../textures/a&amp;b.png")!=std::string::npos,"modern format preserves texture paths");}});
     check(text.find("displacementshader")!=std::string::npos,"displacement is bound to material");
     auto m=parseMaterialX(d["outputs"]["materials/test.mtlx"]);check(std::abs(m["inputs"]["transmission_color"][0].get<float>()-toLinear(128.f/255))<1e-6f,"hex colors converted to linear");
     auto bad=d;bad["outputs"]["materials/test.mtlx"]["inputs"]["ior"]=1.5;rejects(bad,"unknown Standard Surface input");
+    for(const auto& version:Json::array({"1.40",1.39,nullptr})) {bad=d;bad["outputs"]["materials/test.mtlx"]["version"]=version;rejects(bad,"version must be");}
+    bad=d;bad["outputs"]["materials/test.mtlx"]["texture_paths"]="auto";rejects(bad,"texture_paths must be");
     bad=d;bad["outputs"]["materials/test.mtlx"]["inputs"]["base_color"]={{"texture","missing.png"}};rejects(bad,"unknown output");
     bad=d;bad["outputs"]["materials/test.mtlx"]["inputs"]["thin_walled"]=1;rejects(bad,"boolean");
     bad=d;bad["outputs"]["materials/test.mtlx"]["inputs"]["specular_IOR"]=std::numeric_limits<double>::infinity();rejects(bad,"finite number");
@@ -54,6 +60,11 @@ void test(const std::filesystem::path& work) {
     bad=d;bad["outputs"]["wrong.png"]=bad["outputs"]["materials/test.mtlx"];rejects(bad,"extension must match");
     // Emit fixtures for independent validation with the official MaterialX SDK.
     Options options;options.out=work;options.threads=1;Graph(d,".",options).render();
+    auto modernOutput=modern["outputs"]["materials/test.mtlx"];modern["outputs"].erase("materials/test.mtlx");modern["outputs"]["materials/modern.mtlx"]=modernOutput;Graph(modern,".",options).render();
+    auto absolute=d;absolute["outputs"]["materials/test.mtlx"]["texture_paths"]="absolute";
+    auto absoluteOptions=options;absoluteOptions.out=work/"absolute bundle";
+    Graph(absolute,".",absoluteOptions).render([&](const Output& o,const ImagePtr&){if(o.material){auto root=std::filesystem::absolute(absoluteOptions.out).lexically_normal().generic_string();check(o.text.find(root+"/textures/a&amp;b.png")!=std::string::npos,"absolute texture path uses export directory and XML escaping");check(o.text.find(root+"/normal.png")!=std::string::npos,"absolute normal path");check(o.text.find(root+"/height.png")!=std::string::npos,"absolute displacement path");}});
+    Graph(absolute,".",absoluteOptions).render();
     d["outputs"]["linear.png"]={{"node","color"},{"srgb",false}};
     d["outputs"]["materials/linear.mtlx"]={{"type","materialx"},{"name","Linear"},{"inputs",{{"base_color",{{"texture","linear.png"}}}}},{"normal",{{"texture","normal.png"},{"convention","opengl"}}}};
     Json all=Json::object();auto schema=materialXInputs();for(auto it=schema.begin();it!=schema.end();++it)all[it.key()]=it.value().value("default",Json::array({0,0,1}));

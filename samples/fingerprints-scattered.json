@@ -1,0 +1,226 @@
+{
+  "size": 2048,
+  "seed": 293,
+  "tile": false,
+  "nodes": {
+    "radius": {
+      "op": "gradient",
+      "type": "radial",
+      "center": [
+        0.5,
+        0.44
+      ],
+      "radius": 1
+    },
+    "angle": {
+      "op": "gradient",
+      "type": "angular",
+      "center": [
+        0.5,
+        0.44
+      ]
+    },
+    "rings": {
+      "op": "math",
+      "input": "radius",
+      "mode": "multiply",
+      "value": 34
+    },
+    "spiral-phase": {
+      "op": "math",
+      "input": "rings",
+      "b": "angle",
+      "mode": "add"
+    },
+    "phase": {
+      "op": "math",
+      "input": "spiral-phase",
+      "mode": "fract"
+    },
+    "centered-phase": {
+      "op": "math",
+      "input": "phase",
+      "mode": "subtract",
+      "value": 0.5
+    },
+    "ridge-distance": {
+      "op": "math",
+      "input": "centered-phase",
+      "mode": "abs"
+    },
+    "ridges": {
+      "op": "levels",
+      "input": "ridge-distance",
+      "in": [
+        0.205,
+        0.25
+      ],
+      "out": [
+        1,
+        0
+      ]
+    },
+    "oval-ridges": {
+      "op": "transform",
+      "input": "ridges",
+      "scale": [
+        0.72,
+        1.13
+      ],
+      "angle": -8,
+      "edge": "clamp"
+    },
+    "core-loop": {
+      "op": "swirl",
+      "input": "oval-ridges",
+      "center": [
+        0.52,
+        0.41
+      ],
+      "radius": 0.3,
+      "angle": 105,
+      "falloff": 2,
+      "edge": "clamp"
+    },
+    "distort-x": {
+      "op": "clouds",
+      "scale": 3,
+      "octaves": 3,
+      "gain": 0.35,
+      "seed": 293
+    },
+    "distort-y": {
+      "op": "clouds",
+      "scale": 4,
+      "octaves": 3,
+      "gain": 0.35,
+      "seed": 623
+    },
+    "ridge-flow": {
+      "op": "warp",
+      "input": "core-loop",
+      "x": "distort-x",
+      "y": "distort-y",
+      "strength": 0.018,
+      "edge": "clamp"
+    },
+    "fingertip": {
+      "op": "shape",
+      "type": "circle",
+      "size": [
+        0.67,
+        0.88
+      ],
+      "center": [
+        0.5,
+        0.5
+      ],
+      "angle": -8,
+      "softness": 0.3
+    },
+    "pressure-field": {
+      "op": "clouds",
+      "scale": 4,
+      "octaves": 3,
+      "seed": 483
+    },
+    "pressure": {
+      "op": "levels",
+      "input": "pressure-field",
+      "in": [
+        0.2,
+        0.8
+      ],
+      "out": [
+        0.28,
+        0.78
+      ]
+    },
+    "contact": {
+      "op": "blend",
+      "a": "fingertip",
+      "b": "pressure",
+      "mode": "multiply"
+    },
+    "wear-field": {
+      "op": "clouds",
+      "scale": 135,
+      "octaves": 2,
+      "gain": 0.4,
+      "seed": 827
+    },
+    "ink-retention": {
+      "op": "levels",
+      "input": "wear-field",
+      "in": [
+        0.23,
+        0.36
+      ]
+    },
+    "print-ridges": {
+      "op": "blend",
+      "a": "ridge-flow",
+      "b": "worn-contact",
+      "mode": "multiply"
+    },
+    "fingerprint": {
+      "op": "blend",
+      "a": "print-ridges",
+      "b": "ink-retention",
+      "mode": "multiply"
+    },
+    "ink-on-paper": {
+      "op": "invert",
+      "input": "fingerprint"
+    },
+    "grunge-field": {
+      "op": "clouds",
+      "scale": 18,
+      "octaves": 3,
+      "gain": 0.45,
+      "seed": 619
+    },
+    "grunge-retention": {
+      "op": "levels",
+      "input": "grunge-field",
+      "in": [
+        0.27,
+        0.57
+      ],
+      "out": [
+        0.08,
+        1
+      ]
+    },
+    "worn-contact": {
+      "op": "blend",
+      "a": "contact",
+      "b": "grunge-retention",
+      "mode": "multiply",
+      "opacity": 0.7
+    },
+    "scattered-prints": {
+      "op": "scatter",
+      "input": "fingerprint",
+      "count": 22,
+      "size": 0.32,
+      "size_jitter": 0.3,
+      "rotation_jitter": 180,
+      "value_range": [
+        0.18,
+        1
+      ],
+      "mode": "screen",
+      "wrap": true,
+      "seed": 3851
+    },
+    "scattered-ink": {
+      "op": "invert",
+      "input": "scattered-prints"
+    }
+  },
+  "outputs": {
+    "fingerprints-mask.png": "scattered-prints",
+    "fingerprints-ink.png": "scattered-ink"
+  }
+}

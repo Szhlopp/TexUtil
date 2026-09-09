@@ -18,7 +18,7 @@ maps using wrapped, tapered scratch stamps. A matching graph lives in
 | `glass-height.pfm` | The same heightfield as 32-bit float. |
 | `glass-transmission.png` | Constant white transmission weight. |
 | `glass-scratches.png` | Unboosted linear scratch mask for custom shader control. |
-| `glass-preview.png` | Illustrative studio reflection and scratch presentation. |
+| `glass-preview.png` | Scratches presented over a studio gradient. |
 | `glass-sheet.png` | Native sheet of preview, boosted mask, roughness and normal. |
 
 Use a dielectric glass shader with transmission weight 1, metallic 0 and an initial
@@ -29,8 +29,7 @@ window pane, use its thin-glass option or appropriate pane geometry. Set normal
 interpretation to DirectX, or regenerate with `normal.convention: "opengl"`.
 
 The procedural surface maps tile. The studio preview uses a nonrepeating gradient
-and softbox shape for presentation and is not a tileable material map or a physical
-refraction render. Its scratch glints are illustrative, and should not be used as
+for presentation and is not a tileable material map or a physical refraction render. Its scratch glints are illustrative, and should not be used as
 base color. The sheet's scratch mask is contrast-boosted for visibility; the exported
 mask and material maps retain their gentle values.
 

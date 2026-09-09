@@ -1,0 +1,149 @@
+{
+  "size": 2048,
+  "seed": 42,
+  "tile": true,
+  "imports": {
+    "glass": "glass.json",
+    "dust": "dust.json",
+    "prints": "fingerprints-scattered.json"
+  },
+  "nodes": {
+    "dust-roughness": {
+      "op": "math",
+      "input": "dust.dust",
+      "mode": "multiply",
+      "value": 0.35
+    },
+    "print-roughness": {
+      "op": "math",
+      "input": "prints.scattered-prints",
+      "mode": "multiply",
+      "value": 0.22
+    },
+    "surface-wear": {
+      "op": "math",
+      "input": "dust-roughness",
+      "b": "print-roughness",
+      "mode": "add"
+    },
+    "roughness-sum": {
+      "op": "math",
+      "input": "glass.roughness",
+      "b": "surface-wear",
+      "mode": "add"
+    },
+    "roughness": {
+      "op": "math",
+      "input": "roughness-sum",
+      "mode": "clamp",
+      "range": [
+        0,
+        1
+      ]
+    },
+    "preview-haze": {
+      "op": "constant",
+      "value": "#d7e0df"
+    },
+    "preview-mask": {
+      "op": "math",
+      "input": "surface-wear",
+      "mode": "multiply",
+      "value": 2
+    },
+    "preview": {
+      "op": "blend",
+      "a": "glass.studio-preview",
+      "b": "preview-haze",
+      "mode": "mix",
+      "mask": "preview-mask"
+    },
+    "wear-inspection": {
+      "op": "math",
+      "input": "surface-wear",
+      "mode": "multiply",
+      "value": 4
+    }
+  },
+  "outputs": {
+    "handled-glass-color.png": "glass.color",
+    "handled-glass-normal.png": {
+      "node": "glass.normal",
+      "bits": 16
+    },
+    "handled-glass-height.png": {
+      "node": "glass.height",
+      "bits": 16
+    },
+    "handled-glass-roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "handled-glass-transmission.png": "glass.transmission",
+    "dust-mask.png": {
+      "node": "dust.dust",
+      "bits": 16
+    },
+    "fingerprints-mask.png": {
+      "node": "prints.scattered-prints",
+      "bits": 16
+    },
+    "handled-glass-preview.png": "preview",
+    "handled-glass-sheet.png": {
+      "type": "sheet",
+      "title": "Graph imports / handled glass",
+      "columns": 2,
+      "cell": 448,
+      "padding": 18,
+      "items": [
+        {
+          "node": "glass.studio-preview",
+          "label": "Clean glass / illustration"
+        },
+        {
+          "node": "preview",
+          "label": "Dust and prints / illustration"
+        },
+        {
+          "node": "wear-inspection",
+          "label": "Added roughness / intensity x4"
+        },
+        {
+          "node": "roughness",
+          "label": "Final roughness / actual"
+        }
+      ]
+    },
+    "handled-glass.mtlx": {
+      "type": "materialx",
+      "name": "HandledGlass",
+      "inputs": {
+        "base_color": {
+          "texture": "handled-glass-color.png"
+        },
+        "specular_roughness": {
+          "texture": "handled-glass-roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5,
+        "base": 0,
+        "transmission": {
+          "texture": "handled-glass-transmission.png"
+        },
+        "transmission_color": {
+          "texture": "handled-glass-color.png"
+        },
+        "thin_walled": true
+      },
+      "normal": {
+        "texture": "handled-glass-normal.png",
+        "convention": "directx"
+      },
+      "displacement": {
+        "texture": "handled-glass-height.png",
+        "scale": 0.025,
+        "midlevel": 0.5
+      }
+    }
+  }
+}

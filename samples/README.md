@@ -1,8 +1,8 @@
 # Portable sample graphs
 
-These JSON documents are intended to be checked into Git. They are self-contained
-and require no external textures. Generated images belong under `out/`, which is
-ignored along with build products.
+These JSON documents are intended to be checked into Git and require no external
+textures. Some recipes import other samples; keep this folder together when copying
+them. Generated images belong under `out/`, which is ignored along with build products.
 
 ```sh
 ./build/texutil samples/terrain.json --out out/terrain
@@ -12,7 +12,11 @@ ignored along with build products.
 
 | Sample | What it produces |
 | --- | --- |
-| `potion.json` | Ruby-red health potion with flowing ribbons, bubbles, liquid maps and a labeled preview. See [controls](../docs/POTION.md). |
+| `handled-glass.json` | Imports glass, dust and fingerprints to make a reusable worn-glass material. See [imports](../docs/IMPORTS.md). |
+| `dust.json` | Subtle tileable dust with fine particles, flecks, lint and faint buildup. See [controls](../docs/DUST.md). |
+| `fingerprints-scattered.json` | Scattered fingerprint masks with varying intensity, rotation and size, plus edge wrapping. |
+| `fingerprint.json` | Grayscale fingerprint-style ridges as an ink print and an inverse stamping mask. See [construction](../docs/FINGERPRINT.md). |
+| `potion.json` | Fresh ruby potion with shallow swirls, bubbles, separate transmission tint, liquid maps and a labeled preview. See [controls](../docs/POTION.md). |
 | `glass.json` | Gently scratched glass color, height, normals, roughness, transmission and an illustrative preview. See [controls](../docs/GLASS.md). |
 | `cork.json` | Tileable pressed cork color, height, normals, roughness and a native labeled sheet. See [controls](../docs/CORK.md). |
 | `snow.json` | Tileable snow albedo, height, normals, lighting preview and a native labeled sheet. |
@@ -40,9 +44,9 @@ CLI `--size` overrides the saved resolution. Simulation iterations, pixel distan
 and noise frequencies still need tuning for another resolution. See the large
 texture notes in the project README before attempting a 16384-square erosion job.
 
-The five gallery/comparison samples, `snow.json`, `cork.json`, `glass.json` and `potion.json` include native `type:sheet` outputs.
+The five gallery/comparison samples, `snow.json`, `cork.json`, `glass.json`, `potion.json`, `dust.json` and `handled-glass.json` include native `type:sheet` outputs.
 They render their labeled graphics directly with TexUtil; no Pillow step is needed.
 
-`stone.json`, `wood.json`, `snow.json`, `cork.json`, `glass.json` and `potion.json`
+`stone.json`, `wood.json`, `snow.json`, `cork.json`, `glass.json`, `potion.json` and `handled-glass.json`
 also emit MaterialX materials. See [MaterialX export](../docs/MATERIALX.md) for
 custom shader parameters and Maya usage. Copy each `.mtlx` with its referenced PNGs.

@@ -10,12 +10,15 @@ from MaterialX import PyMaterialXGenShader as gs
 
 
 def validate(path, library):
-    # Resolve filenames from the document's directory, as a moved material bundle will.
+    # Resolve portable references from the document, or use explicitly absolute exports.
     tree = ET.parse(path)
+    version = tree.getroot().get("version", "1.38")
+    if tuple(map(int, version.split(".")[:2])) > tuple(map(int, mx.__version__.split(".")[:2])):
+        raise RuntimeError(f"{path}: document version {version} needs MaterialX SDK {version} or newer; installed SDK is {mx.__version__}")
     for value in tree.findall(".//input[@type='filename']"):
-        relative = Path(value.attrib["value"])
-        if relative.is_absolute() or not (path.parent / relative).is_file():
-            raise RuntimeError(f"{path}: missing or nonrelative texture {relative}")
+        texture = Path(value.attrib["value"])
+        if not (path.parent / texture).is_file():
+            raise RuntimeError(f"{path}: missing texture {texture}")
     document = mx.createDocument()
     mx.readFromXmlFile(document, str(path))
     document.importLibrary(library)

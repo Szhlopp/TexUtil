@@ -149,7 +149,8 @@ Document fields:
 | `format` | `"png"` | Encoder for output names with no extension. |
 | `bits` | `8` (`32` for PFM default format) | Default integer output depth. |
 | `srgb` | `true` | Encode color outputs as sRGB; data outputs ignore this. |
-| `nodes` | required | Named node objects, maximum 4096. |
+| `imports` | `{}` | Aliases mapped to JSON filenames; use imported nodes as `alias.node`. |
+| `nodes` | required unless imports supply nodes | Named node objects, maximum 4096 after imports and preset expansion. |
 | `outputs` | required | Filenames mapped to node names or output settings, maximum 1024. |
 
 Output settings can override `node`, `format`, `bits`, `alpha`, `srgb`. A filename
@@ -296,6 +297,27 @@ float height, DirectX normals, a lighting preview and a native contact sheet:
 ./build/texutil samples/snow.json --out out/snow
 ```
 
+## Reuse JSON recipes
+
+Use named imports to combine existing graphs without copying their nodes or rendering
+intermediate images:
+
+```json
+"imports": {
+  "glass": "glass.json",
+  "dust": "dust.json",
+  "prints": "fingerprints-scattered.json"
+}
+```
+
+Then use references such as `glass.roughness`, `dust.dust` and
+`prints.scattered-prints` in ordinary nodes. See [graph imports](docs/IMPORTS.md)
+for scope, seed, size and path rules. The complete example is runnable:
+
+```sh
+./build/texutil samples/handled-glass.json --out out/handled-glass
+```
+
 ## MaterialX materials
 
 Stone, wood, snow, cork, glass and potion samples also export `.mtlx` materials with
@@ -320,7 +342,7 @@ compatible host. Exporting adds no GPU, Python or MaterialX runtime dependency.
 
 The [forest example](docs/FOREST.md) demonstrates stronger cumulative rain, wind
 and thermal settling, with a lush green palette and separate unlit albedo.
-[Portable samples](samples/README.md) contains 16 check-in-ready JSON graphs,
+[Portable samples](samples/README.md) contains 20 check-in-ready JSON graphs,
 including actual `terrain.json` and `forest.json` files:
 
 ```sh

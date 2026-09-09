@@ -20,7 +20,7 @@ bool boolean(const Json& value, const std::string& label) { require(value.is_boo
 std::string string(const Json& value, const std::string& label) { require(value.is_string(), label + " must be a string"); return value.get<std::string>(); }
 }
 Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std::move(base)), options_(std::move(options)) {
-    fields(doc, {"version", "size", "seed", "tile", "background", "alpha", "format", "bits", "srgb", "nodes", "outputs"}, "document");
+    fields(doc, {"version", "size", "seed", "tile", "background", "alpha", "format", "bits", "srgb", "nodes", "outputs", "imports"}, "document");
     if (doc.contains("version")) require(boundedInteger(doc["version"], 1, 1, "version") == 1, "unsupported version");
     if (doc.contains("size")) {
         auto s = doc["size"];
@@ -40,13 +40,14 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
     require(defaultFormat == "png" || defaultFormat == "ppm" || defaultFormat == "pgm" || defaultFormat == "pfm", "format must be png, ppm, pgm or pfm");
     int defaultBits = boundedInteger(doc.value("bits", Json(defaultFormat == "pfm" ? 32 : 8)), 8, 32, "bits");
     require(defaultBits == 8 || defaultBits == 16 || defaultBits == 32, "bits must be 8, 16 or 32");
-    require(doc.contains("nodes") && doc["nodes"].is_object() && !doc["nodes"].empty(), "nodes must be a nonempty object");
-    require(doc["nodes"].size() <= 4096, "maximum 4096 nodes");
-    doc["nodes"] = expandPresets(doc["nodes"]);
+    auto expanded=expandImports(doc,base_,seed_,tile_);
+    doc["nodes"]=std::move(expanded.nodes);
+    require(!doc["nodes"].empty(), "nodes must be a nonempty object, or supplied through imports");
     require(doc["nodes"].size() <= 4096, "maximum 4096 nodes after preset expansion");
     for (auto it = doc["nodes"].begin(); it != doc["nodes"].end(); ++it) {
         require(!it.key().empty(), "node names cannot be empty");
-        nodes_[it.key()] = normalizedNode(it.key(), it.value());
+        // Import expansion already normalizes each node in its declaring scope.
+        nodes_[it.key()] = it.value();
         if (nodes_[it.key()]["op"] == "image") require(std::filesystem::is_regular_file(base_ / nodes_[it.key()]["path"].get<std::string>()), "node '" + it.key() + "': image file does not exist");
     }
     // Validate the entire graph, including unreachable nodes, before writing anything.
@@ -89,6 +90,7 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
         if (extension.empty()) path += "." + out.format;
         require(destinations.insert(path.lexically_normal()).second, "duplicate output path '" + path.string() + "'");
         const auto destination = std::filesystem::weakly_canonical(options_.out / path);
+        for(const auto& imported:expanded.files)require(destination!=imported,"output would overwrite imported JSON '"+imported.string()+"'");
         for (const auto& [id, node] : nodes_) if (node["op"] == "image") require(destination != std::filesystem::weakly_canonical(base_ / node["path"].get<std::string>()), "output would overwrite input image for node '" + id + "'");
         out.name = path.string();
         if (out.material) { outputs_.push_back(out); continue; }
@@ -158,7 +160,7 @@ Json Graph::render(const std::function<void(const Output&, const ImagePtr&)>& si
     }
     // Write material documents only after every referenced texture has been exported.
     for (auto output : outputs_) if (output.material) {
-        auto begin=Clock::now();output.text=materialXDocument(output,outputs_,outputKinds,tile_);
+        auto begin=Clock::now();output.text=materialXDocument(output,outputs_,outputKinds,tile_,options_.out);
         if(sink) sink(output,{});
         else {
             auto path=options_.out/output.name;std::filesystem::create_directories(path.parent_path());

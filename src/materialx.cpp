@@ -73,8 +73,10 @@ Json materialXInputs() {
     );return schema;
 }
 Json parseMaterialX(const Json& output) {
-    fields(output,{"type","name","shader","inputs","normal","displacement"});
+    fields(output,{"type","name","version","texture_paths","shader","inputs","normal","displacement"});
     Json result=output;
+    auto version=output.value("version",Json("1.38"));require(version=="1.38"||version=="1.39","version must be 1.38 or 1.39 (string)");result["version"]=version;
+    auto paths=output.value("texture_paths",Json("relative"));require(paths=="relative"||paths=="absolute","texture_paths must be relative or absolute");result["texture_paths"]=paths;
     require(output.value("shader",Json("standard_surface"))=="standard_surface","shader must be standard_surface");
     auto name=output.value("name",Json("Material"));require(name.is_string()&&identifier(name.get<std::string>()),"name must be an ASCII identifier, maximum 128 characters");result["name"]=name;
     result["inputs"]=output.value("inputs",Json::object());require(result["inputs"].is_object(),"inputs must be an object");
@@ -110,12 +112,12 @@ void validateMaterialXImage(const std::vector<Output>& outputs, const Output& ou
         if(type=="color3")require(kind!=Kind::Normal,"normal data cannot be used as color texture '"+name+"'");
     }
 }
-std::string materialXDocument(const Output& output, const std::vector<Output>& outputs, const std::map<std::string, Kind>& kinds, bool tile) {
+std::string materialXDocument(const Output& output, const std::vector<Output>& outputs, const std::map<std::string, Kind>& kinds, bool tile, const std::filesystem::path& outputDirectory) {
     const auto& m=*output.material;std::string prefix="tx_"+m["name"].get<std::string>()+"_", body,surface;
     auto image=[&](const std::string& key,const std::string& file,const std::string& type) {
         const auto& source=findOutput(outputs,file);
         auto parent=std::filesystem::path(output.name).parent_path();if(parent.empty())parent=".";
-        auto path=std::filesystem::path(file).lexically_relative(parent).generic_string();require(!path.empty(),"cannot make relative texture path");
+        auto path=m.value("texture_paths",std::string("relative"))=="absolute"?std::filesystem::absolute(outputDirectory/file).lexically_normal().generic_string():std::filesystem::path(file).lexically_relative(parent).generic_string();require(!path.empty(),"cannot make texture path");
         std::string colorspace=type=="color3"&&kinds.at(file)==Kind::Color&&source.srgb?"srgb_texture":"lin_rec709";
         auto id=prefix+key+"_image";
         body+=node("image",id,type,input("file","filename","value",path)+input("uaddressmode","string","value",tile?"periodic":"clamp")+input("vaddressmode","string","value",tile?"periodic":"clamp")," colorspace=\""+colorspace+"\"");return id;
@@ -131,7 +133,8 @@ std::string materialXDocument(const Output& output, const std::vector<Output>& o
             body+=node("multiply",prefix+"normal_flip","vector3",input("in1","vector3","nodename",id)+input("in2","vector3","value","1, -1, 1"));
             body+=node("add",prefix+"normal_bias","vector3",input("in1","vector3","nodename",prefix+"normal_flip")+input("in2","vector3","value","0, 1, 0"));id=prefix+"normal_bias";
         }
-        body+=node("normalmap",prefix+"normal_map","vector3",input("in","vector3","nodename",id)+input("scale","float","value",valueText(normal["scale"]))+input("space","string","value","tangent"));
+        // Tangent space is the 1.38 default; 1.39 removed the space input entirely.
+        body+=node("normalmap",prefix+"normal_map","vector3",input("in","vector3","nodename",id)+input("scale","float","value",valueText(normal["scale"])));
         surface+=input("normal","vector3","nodename",prefix+"normal_map");
     }
     body+=node("standard_surface",prefix+"surface","surfaceshader",surface," version=\"1.0.1\"");
@@ -143,6 +146,6 @@ std::string materialXDocument(const Output& output, const std::vector<Output>& o
         material+=input("displacementshader","displacementshader","nodename",prefix+"displacement");
     }
     body+=node("surfacematerial",m["name"],"material",material);
-    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<materialx version=\"1.38\" colorspace=\"lin_rec709\">\n"+body+"</materialx>\n";
+    return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<materialx version=\""+m.value("version",std::string("1.38"))+"\" colorspace=\"lin_rec709\">\n"+body+"</materialx>\n";
 }
 }

@@ -67,6 +67,8 @@ private:
 
 void addAdvancedCatalog(Json& result);
 Json expandPresets(Json nodes);
+struct ImportedNodes { Json nodes; std::vector<std::filesystem::path> files; };
+ImportedNodes expandImports(const Json& document, const std::filesystem::path& base, int seed, bool tile);
 Json presetNames();
 Json catalog();
 Json normalizedNode(const std::string& id, const Json& node);
@@ -105,7 +107,7 @@ Json materialXInputs();
 Json parseMaterialX(const Json& output);
 void validateMaterialXReferences(const std::vector<Output>& outputs);
 void validateMaterialXImage(const std::vector<Output>& outputs, const Output& output, Kind kind);
-std::string materialXDocument(const Output& output, const std::vector<Output>& outputs, const std::map<std::string, Kind>& kinds, bool tile);
+std::string materialXDocument(const Output& output, const std::vector<Output>& outputs, const std::map<std::string, Kind>& kinds, bool tile, const std::filesystem::path& outputDirectory = ".");
 struct Context {
     int width, height, seed;
     bool tile;

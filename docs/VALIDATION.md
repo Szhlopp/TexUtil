@@ -240,3 +240,45 @@ python tools/validate_materialx.py build/materialx-test out/stone out/wood out/s
 
 The SDK was installed only in the ignored `build/materialx-venv` for development
 verification. It is not linked into TexUtil and is not a runtime requirement.
+
+## JSON graph imports
+
+All 17 Release CTest targets pass, including graph imports and the handled-glass
+example. The portable-sample check covers 20 graphs. Import tests cover standalone
+pixel equivalence, independent seeds and tiling, parent resolution, presets, nested
+relative paths, image assets, shared execution, ignored child exports, namespace
+conflicts, missing references, cycles, resource limits and overwrite protection.
+
+The 2048-square handled-glass sample combines imported glass, dust and fingerprint
+recipes. Its native sheet was visually inspected. The artificial softbox streak
+was removed from both saved glass recipes, and glass and handled-glass outputs
+were regenerated. MaterialX SDK 1.38.10 validated both materials, resolved their
+texture paths and generated GLSL. No GPU render or Maya import was performed.
+
+## Revised potion material
+
+The revised 2048-square potion recipe validates and renders all 12 exports. The
+portable-sample CTest confirms sample/example synchronization. MaterialX SDK
+1.38.10 validates the material, texture paths and GLSL generation. The six-panel
+sheet and a 2x2 repeat were visually inspected; no bottle/DCC render was performed.
+
+Float height is finite and ranges from approximately 0.48000 to 0.52956. The
+16-bit roughness map ranges from 0.04352 to 0.05844, with 979 distinct encoded
+values. Mean height discontinuity at the wrap boundary divided by ordinary
+neighbor differences is 1.096 in X and 0.692 in Y. This is a supporting seam
+check, not proof that repeated patterns are unrecognizable. The single local
+eight-worker render took 1916.1 ms including exports.
+
+## MaterialX host compatibility
+
+The potion recipe now renders 14 exports, including portable MaterialX 1.38 and
+1.39 documents and a 1.39 Arnold variant with absolute texture paths. All 17 Release
+CTest checks passed after the exporter changes. MaterialX SDK checks covered
+1.38.10 and 1.39.4, texture existence and GLSL generation, including absolute paths.
+The obsolete normal-map `space` input was removed for 1.39 compatibility.
+
+Isolated Maya 2027 / LookdevX 2.0 loading and importing exposed all five expected
+image paths. Arnold translation retained unanchored relative image filenames in
+the original variant. The user confirmed that `potion-arnold.mtlx` renders as a red
+transmissive material in Maya 2027's Hypershade shader-ball preview. This verifies
+that preview workflow; a bottle scene render remains unverified.

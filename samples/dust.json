@@ -1,0 +1,151 @@
+{
+  "size": 2048,
+  "seed": 418,
+  "tile": true,
+  "nodes": {
+    "buildup-field": {
+      "op": "clouds",
+      "scale": 3,
+      "octaves": 3,
+      "gain": 0.4,
+      "seed": 418
+    },
+    "density": {
+      "op": "levels",
+      "input": "buildup-field",
+      "in": [
+        0.22,
+        0.78
+      ],
+      "out": [
+        0.25,
+        1
+      ]
+    },
+    "grain": {
+      "op": "shape",
+      "type": "gaussian",
+      "size": 0.92,
+      "sigma": 0.42
+    },
+    "fine-dust": {
+      "op": "scatter",
+      "input": "grain",
+      "count": 4200,
+      "size": 0.0026,
+      "size_jitter": 0.65,
+      "value_range": [
+        0.035,
+        0.2
+      ],
+      "mask": "density",
+      "mode": "screen",
+      "wrap": true,
+      "seed": 814
+    },
+    "flecks": {
+      "op": "scatter",
+      "input": "grain",
+      "count": 210,
+      "size": 0.0048,
+      "size_jitter": 0.5,
+      "value_range": [
+        0.06,
+        0.28
+      ],
+      "mask": "density",
+      "mode": "screen",
+      "wrap": true,
+      "seed": 392
+    },
+    "fibre": {
+      "op": "shape",
+      "type": "capsule",
+      "size": 0.9,
+      "softness": 0.4
+    },
+    "lint": {
+      "op": "scatter",
+      "input": "fibre",
+      "count": 30,
+      "size": [
+        0.009,
+        0.00085
+      ],
+      "size_jitter": 0.5,
+      "rotation_jitter": 180,
+      "value_range": [
+        0.03,
+        0.12
+      ],
+      "mode": "screen",
+      "wrap": true,
+      "seed": 671
+    },
+    "particles": {
+      "op": "blend",
+      "a": "fine-dust",
+      "b": "flecks",
+      "mode": "screen"
+    },
+    "particle-mix": {
+      "op": "blend",
+      "a": "particles",
+      "b": "lint",
+      "mode": "screen"
+    },
+    "haze": {
+      "op": "levels",
+      "input": "buildup-field",
+      "in": [
+        0.32,
+        0.72
+      ],
+      "out": [
+        0,
+        0.012
+      ]
+    },
+    "dust": {
+      "op": "blend",
+      "a": "particle-mix",
+      "b": "haze",
+      "mode": "screen"
+    },
+    "dust-on-white": {
+      "op": "invert",
+      "input": "dust"
+    },
+    "inspection": {
+      "op": "math",
+      "input": "dust",
+      "mode": "multiply",
+      "value": 4
+    }
+  },
+  "outputs": {
+    "dust-mask.png": {
+      "node": "dust",
+      "bits": 16
+    },
+    "dust-inverted.png": "dust-on-white",
+    "dust-inspection.png": "inspection",
+    "dust-sheet.png": {
+      "type": "sheet",
+      "title": "Subtle dust / surface mask",
+      "columns": 2,
+      "cell": 448,
+      "padding": 18,
+      "items": [
+        {
+          "node": "dust",
+          "label": "Actual mask / 16-bit export"
+        },
+        {
+          "node": "inspection",
+          "label": "Inspection / intensity x4"
+        }
+      ]
+    }
+  }
+}

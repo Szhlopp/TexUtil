@@ -1,6 +1,6 @@
 # MaterialX material export
 
-TexUtil can export a MaterialX 1.38 `.mtlx` document alongside baked PNG textures.
+TexUtil can export MaterialX 1.38 or 1.39 `.mtlx` documents alongside baked PNG textures.
 The document uses the standard `standard_surface` shader, version 1.0.1. It has no
 TexUtil-specific shader nodes and needs no TexUtil plugin in the receiving DCC.
 The exporter is native C++; exporting does not require Python, the MaterialX SDK,
@@ -50,6 +50,25 @@ Use an `image` node plus a PNG output when bringing an external texture into a b
 The last command lists all 42 supported Standard Surface input names, types and
 defaults. A checked-in copy is [materialx-inputs.json](materialx-inputs.json).
 Agents can query it before constructing a material, without needing to guess names.
+
+## Document version and host compatibility
+
+The MaterialX output accepts `"version":"1.38"` (default) or `"version":"1.39"`.
+This is separate from the root TexUtil graph version and the Standard Surface
+shader version. Choose 1.38 for a 1.38 host such as Maya 2026; choose 1.39 for Maya
+2027 / LookdevX 2.0 to avoid a legacy-document upgrade prompt.
+
+```json
+"potion-1.39.mtlx": {
+  "type":"materialx", "version":"1.39", "name":"Potion",
+  "inputs":{"base_color":{"texture":"potion-color.png"}, "metalness":0}
+}
+```
+
+Both formats use the same portable PNG references and Standard Surface shader.
+The normal helper omits the old `space` input: tangent space is the 1.38 default,
+while 1.39 removed that parameter. A 1.38 SDK cannot validate a 1.39 document;
+use an SDK at least as new as the chosen format.
 
 ## Arbitrary Standard Surface inputs
 
@@ -118,10 +137,18 @@ exaggerating the same detail twice; remove either helper when appropriate.
 The output name must be relative to `--out`; `.mtlx` is appended if omitted.
 `name` defaults to `Material` and must be an ASCII identifier with at most 128
 characters: letters, digits and underscores, starting with a letter or underscore.
-Texture paths inside the XML are relative to the `.mtlx` file, including when it is
+By default, texture paths inside the XML are relative to the `.mtlx` file, including when it is
 in a subdirectory. Copy the material file **and its referenced PNGs**, preserving
 their relative locations. Paths are XML-escaped. No standard-library files are
 copied into the bundle; the host supplies its MaterialX standard libraries.
+
+Set `"texture_paths":"absolute"` on a MaterialX output for hosts that do not resolve
+relative image filenames against the document, including the tested Maya 2027
+Arnold `aiMaterialXShader` workflow. The exporter resolves each texture against
+`--out` and writes its full disk path. Texture bindings in the recipe still name
+exported PNG files. The default is `"texture_paths":"relative"` for portable bundles.
+Regenerate absolute-path exports after moving the output folder or copying it to
+another computer.
 
 The document working space is `lin_rec709`. Color image nodes use `srgb_texture`
 when the actual color output was sRGB-encoded, and `lin_rec709` for linear exports.
@@ -143,21 +170,40 @@ render sink with a null image, `Output.material` set and XML in `Output.text`.
 
 ## Maya and preview rendering
 
-Maya's LookdevX supports importing MaterialX documents and assigning their materials
-to native Maya geometry. Use LookdevX's MaterialX workflow to load the `.mtlx`, then
-assign the material to your mesh. Enable the relevant LookdevX/Maya USD/renderer
-plugins for your installed Maya version. Glass and potion need appropriate liquid
-or pane geometry, lighting, refraction and absorption settings in the renderer.
+Use LookdevX's **Load MaterialX** or **Import MaterialX** document command,
+then assign the material to geometry. Loading retains the external document and
+its relative texture-path anchor. Importing embeds a copy; the tested Maya builds
+converted the texture paths to absolute paths. Keep the PNGs beside the exported
+material when moving the bundle. Reimport or reload after regenerating exports;
+an embedded copy is not automatically refreshed from the source file.
 
-This exporter was validated with the official **MaterialX 1.38.10 SDK**, including
-standard-library graph validation and GLSL shader generation. It has not yet been
-imported or rendered in Maya in this project. Renderer support for displacement,
-volumes and individual shader features can differ. The texture sheets remain 2D
-illustrations; a MaterialX sphere renderer is a separate, optional future feature.
+For Hypershade's Arnold **aiMaterialXShader**, use `potion-arnold.mtlx` in
+**MaterialX Filename** and select **Potion** under **Materials**. This sample uses
+version 1.39 and absolute texture paths. Its shader graph stays inside the MaterialX
+document, so separate Maya file nodes are not expected in Hypershade.
+
+The potion sample also exports portable `potion.mtlx` (1.38) and `potion-1.39.mtlx` (1.39).
+Its five image nodes reference body color, emission color, roughness, transmission
+tint and normal. Base and emission weights are zero by default, so those two
+connected color maps do not contribute until their lobes are enabled. Height is
+exported separately but is not connected as displacement. These are recipe choices,
+not missing texture references.
+
+An isolated Maya 2027 / LookdevX 2.0 test successfully loaded and imported the 1.39
+potion document without the previous normal-input or legacy-version errors. Both
+routes exposed all five expected texture paths. SDK validation covers 1.38.10 and
+1.39.4, including GLSL generation. The user also confirmed the absolute-path Arnold
+export renders as a red transmissive material in Maya 2027's Hypershade shader-ball
+preview. A bottle scene render has not been verified. Renderer support for displacement, volumes and individual shader
+features can differ. A material sphere renderer is a separate future feature.
+
+macOS Preview is an image/PDF viewer, not a MaterialX shader host. Open the generated
+`potion-sheet.png` there to inspect maps; use a MaterialX-capable DCC for `.mtlx`.
+Material files do not embed their PNGs or a rendered preview.
 
 Stone, wood, snow, cork, glass and potion samples now emit matching `.mtlx` files.
 
-Optional developer verification, using a Python environment with MaterialX installed:
+Optional developer verification, using a Python environment with a sufficiently recent MaterialX SDK installed (1.39+ for the complete potion folder):
 
 ```sh
 python tools/validate_materialx.py out/glass out/potion
@@ -169,3 +215,5 @@ GLSL source. It does not create a graphics context, compile GPU shaders or rende
 Sources: [Standard Surface definition](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.38.10/libraries/bxdf/standard_surface.mtlx),
 [standard node definitions](https://github.com/AcademySoftwareFoundation/MaterialX/blob/v1.38.10/libraries/stdlib/stdlib_defs.mtlx),
 [Maya LookdevX introduction](https://help.autodesk.com/view/MAYAUL/2026/ENU/?guid=GUID-139850AD-F5B8-4F7C-87A5-214C787423FC).
+
+Host references: [Autodesk import versus load](https://help.autodesk.com/cloudhelp/2026/CHS/LookdevX/files/LookdevX_Developer_Examples/MaterialX/BBC7E488-F3AE-4699-BB0E-B9030EF9B07F.html), [Maya 2027 MaterialX update](https://help.autodesk.com/view/MAYAUL/2027/ENU/?guid=GUID-6DA3C115-C004-48DB-9D84-90D19E42E358).
