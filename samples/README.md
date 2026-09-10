@@ -65,3 +65,7 @@ The first two need a Filament-enabled build. Before running the third, run
 Then render with `./build/texutil samples/models/geometry-maps.json --out out/geometry`.
 See [model setup and controls](../docs/MODELS.md). These are additional standalone
 recipes, with no synchronized `examples/` counterparts.
+
+`models/multi-material.json` assigns separate glass and cork graphs to the included
+torus. `models/bottle/` contains a study using the user-supplied Bottle.obj, including
+preparation instructions, seven material recipes and geometry-driven wear.

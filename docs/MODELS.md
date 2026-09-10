@@ -156,7 +156,8 @@ Run the complete checked-in examples:
 | Setting | Default / behavior |
 | --- | --- |
 | `model` | Required path relative to the JSON; OBJ, FBX, glTF or GLB. |
-| `material` | Required MaterialX output filename in the same graph. |
+| `material` | Default material binding, required unless `materials` supplies every used mesh slot. |
+| `materials` | Map source material names or `#index` keys to local MaterialX outputs or external recipe bindings. |
 | `environment` | `studio`, `outdoor`, or a custom 2:1 Radiance `.hdr` path relative to the JSON. |
 | `rotation` | `[pitch, yaw, roll]` degrees, default `[0,0,0]`. Applied X then Y then Z. |
 | `views` | Alternative to `rotation`: 1..12 angle triples. Multiple views produce a labeled sheet. |
@@ -184,8 +185,8 @@ This setting affects the preview only; it does not author a triplanar MaterialX
 network or bake the projection back into UV textures.
 
 Meshes are centered and scaled uniformly to fit a fixed camera. Projection scale
-uses source units before this display normalization. All source material slots
-receive the selected TexUtil material. Existing model shaders, textures, cameras
+uses source units before this display normalization. A single `material` applies to every slot; `materials` can assign separate recipes
+to named slots and override the default. Existing model shaders, textures, cameras
 and lights are not rendered. UV mode uses the first UV set. Static transforms and
 instances are flattened; skinned meshes and morph targets must be exported as a
 static posed mesh. glTF triangle primitives must be uncompressed (no Draco or
@@ -196,11 +197,66 @@ Filament approximates the exported Standard Surface using base color, roughness,
 metalness, tangent normal, IOR, transmission/tint/depth, emission and clear coat.
 Unsupported inputs and unapplied displacement are reported as preview warnings
 on stderr and in `--json` output details. This is not a full MaterialX shader
-interpreter or an Arnold reference render. Thin and solid refraction use different
-Filament material packages; neither performs path-traced internal scattering.
+interpreter or an Arnold reference render. Opaque, thin and solid surfaces use different
+Filament material packages; transmissive variants use screen-space refraction; neither performs path-traced internal scattering.
 Previews use HDR image-based diffuse/specular lighting, neutral PBR tone mapping
 and FXAA, and export opaque 8-bit sRGB PNGs. Other formats and render callbacks
 are unsupported for preview outputs. GPU allocations are outside `--memory`.
+
+## Multiple materials and external JSON recipes
+
+A model can bind a different graph to each existing material slot:
+
+```json
+"preview.png": {
+  "type": "preview",
+  "model": "bottle.obj",
+  "materials": {
+    "glass": {"graph": "glass.json", "material": "glass.mtlx"},
+    "cork": {"graph": "cork.json", "projection": "triplanar", "projection_scale": 30},
+    "brew": {"graph": "potion.json", "refraction": "opaque"},
+    "brass": "brass.json"
+  },
+  "environment": "studio",
+  "rotation": [0, 30, 0]
+}
+```
+
+The binding keys match material slots reported by `model check-uvs`; `#1`, `#2`,
+etc. select explicit zero-based indices when names are ambiguous. These are
+material assignments, not arbitrary OBJ group names. Assign slots in the source
+DCC or prepare a working copy first. An unknown key or an unbound used slot fails at render time;
+an optional top-level `material` acts as a fallback.
+
+A string ending in `.json` is shorthand for `{"graph":"path.json"}`. Other strings
+refer to MaterialX output filenames in the current graph. An object with `graph`
+may select a MaterialX output using `material`; selection is automatic only when
+the external recipe has exactly one MaterialX output. Graph paths resolve beside
+the preview JSON, while each graph's own imports resolve beside that graph.
+Per-binding `projection`, `projection_scale`, `projection_blend` and `thickness`
+override preview defaults. Graphs containing only preview outputs may use empty
+`nodes`, so a scene recipe needs no dummy texture node.
+
+Validation checks binding syntax and recipe-file existence; external graph contents
+and mesh-slot matching are checked when rendering. External recipes render their selected MaterialX output and its referenced image
+outputs into `preview-materials/<preview-output>.assets/<slot>/` under `--out`.
+Unrelated image/sheet/preview outputs are pruned, preventing recursive preview
+execution. Graph resolution and tiling come from the external recipe. These
+exports are listed in render statistics; each preview also reports its resolved
+slot bindings, asset directories, projections and warnings. GPU texture storage
+is additional to the graph's CPU float-buffer budget.
+
+`refraction` is a per-binding preview option: `auto` is the default and chooses
+opaque or screen-space refraction from the shader's transmission input. Explicit
+`opaque` disables transmission **only in the preview** and emits a warning for a
+transmissive material. It is useful for inspecting dense liquid behind glass:
+screen-space refraction can see the opaque scene but cannot accurately resolve
+multiple nested transmissive layers. Exported MaterialX remains unchanged. Use a
+path tracer for final glass/liquid volume evaluation.
+
+See [multi-material torus](../samples/models/multi-material.json) for a self-contained
+example and [the bottle study](../samples/models/bottle/README.md) for real geometry
+preparation, baked masks and separate glass/cork/potion/brass recipes.
 
 ## Lighting assets and redistribution
 

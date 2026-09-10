@@ -1,0 +1,38 @@
+{
+  "nodes": {},
+  "outputs": {
+    "preview.png": {
+      "type": "preview",
+      "model": "../../assets/models/preview-torus.obj",
+      "materials": {
+        "body": {
+          "graph": "../glass.json",
+          "material": "glass.mtlx",
+          "projection": "triplanar",
+          "projection_scale": 2,
+          "thickness": 0.08
+        },
+        "band": {
+          "graph": "../cork.json",
+          "material": "cork.mtlx",
+          "projection": "triplanar",
+          "projection_scale": 2
+        }
+      },
+      "environment": "studio",
+      "views": [
+        [
+          35,
+          0,
+          0
+        ],
+        [
+          35,
+          60,
+          0
+        ]
+      ],
+      "size": 384
+    }
+  }
+}

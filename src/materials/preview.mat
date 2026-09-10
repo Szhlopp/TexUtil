@@ -78,14 +78,16 @@ fragment {
         material.baseColor = vec4(sampleMap(materialParams_colorMap, uv, p, signs, weights).rgb * materialParams.baseColor, 1.0);
         material.roughness = clamp(sampleMap(materialParams_roughnessMap, uv, p, signs, weights).r * materialParams.roughness, 0.0, 1.0);
         material.metallic = clamp(sampleMap(materialParams_metalnessMap, uv, p, signs, weights).r * materialParams.metalness, 0.0, 1.0);
+#if TEXUTIL_REFRACT
         material.transmission = clamp(sampleMap(materialParams_transmissionMap, uv, p, signs, weights).r * materialParams.transmission, 0.0, 1.0);
-        material.ior = materialParams.ior;
 #if TEXUTIL_THIN
         material.microThickness = materialParams.thickness;
 #else
         material.thickness = materialParams.thickness;
 #endif
         material.absorption = -log(clamp(sampleMap(materialParams_transmissionColorMap, uv, p, signs, weights).rgb * materialParams.transmissionColor, vec3(0.0001), vec3(1.0))) / materialParams.transmissionDepth;
+#endif
+        material.ior = materialParams.ior;
         material.clearCoat = materialParams.coat;
         material.clearCoatRoughness = materialParams.coatRoughness;
         material.emissive = vec4(sampleMap(materialParams_emissionMap, uv, p, signs, weights).rgb * materialParams.emissionColor * materialParams.emission, 0.0);

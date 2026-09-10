@@ -517,3 +517,15 @@ are linear space rendering (pp. 38-41), base color (pp. 51-53), metallic
 The PDF is an external reference, not a bundled repository dependency. These are
 paraphrased principles adapted to TexUtil's metalness/roughness workflow; the guide's
 Substance-specific tools and historical renderer behavior are not TexUtil features.
+
+### Assign separate material recipes to one model
+
+Preview outputs accept `materials:{"slot":{"graph":"recipe.json","material":"name.mtlx"}}`.
+Keys match source material names or explicit `#index` values. Query `model check-uvs`;
+OBJ groups do not automatically become material slots. A `.json` string binding is
+shorthand, and `material` may be omitted when the recipe has one MaterialX output.
+Per-slot UV/triplanar settings are supported. Preview-only root graphs can have
+empty `nodes`. External graph outputs are pruned to the selected material and its
+texture files, exported beneath `preview-materials/`, and listed in render JSON.
+Read the warnings: `refraction:opaque` is a preview approximation for nested liquid,
+and does not change exported MaterialX. See `samples/models/bottle/README.md`.

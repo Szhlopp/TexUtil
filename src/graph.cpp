@@ -44,7 +44,9 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
     require(defaultBits == 8 || defaultBits == 16 || defaultBits == 32, "bits must be 8, 16 or 32");
     auto expanded=expandImports(doc,base_,seed_,tile_);
     doc["nodes"]=std::move(expanded.nodes);
-    require(!doc["nodes"].empty(), "nodes must be a nonempty object, or supplied through imports");
+    bool previewOnly=doc.contains("outputs")&&doc["outputs"].is_object()&&!doc["outputs"].empty();
+    if(previewOnly)for(const auto& o:doc["outputs"])previewOnly&=o.is_object()&&o.value("type",std::string{})=="preview";
+    require(!doc["nodes"].empty()||previewOnly, "nodes must be a nonempty object, or supplied through imports");
     require(doc["nodes"].size() <= 4096, "maximum 4096 nodes after preset expansion");
     for (auto it = doc["nodes"].begin(); it != doc["nodes"].end(); ++it) {
         require(!it.key().empty(), "node names cannot be empty");
@@ -109,6 +111,7 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
         outputs_.push_back(out);
     }
     validateMaterialXReferences(outputs_);
+    for(const auto& preview:outputs_)if(preview.preview){auto directory=std::filesystem::weakly_canonical(options_.out/"preview-materials"/(preview.name+".assets"));for(const auto& output:outputs_){auto relative=std::filesystem::weakly_canonical(options_.out/output.name).lexically_relative(directory);require(relative.empty()||*relative.begin()=="..","output collides with reserved preview-material directory");}}
     validatePreviewReferences(outputs_);
     for(const auto& o:outputs_)if(o.preview)for(const auto& dest:outputs_) { auto d=std::filesystem::weakly_canonical(options_.out/dest.name); for(const auto* key:{"model","environment"}) require(d!=std::filesystem::weakly_canonical(o.preview->at(key).get<std::string>()),"output would overwrite preview asset"); }
     state.clear();
@@ -180,15 +183,18 @@ Json Graph::render(const std::function<void(const Output&, const ImagePtr&)>& si
         exportMs+=std::chrono::duration<double,std::milli>(Clock::now()-begin).count();
     }
     for(const auto& output:outputs_)if(output.preview) {
-        auto begin=Clock::now();const auto name=output.preview->at("material").get<std::string>();
-        const auto& material=*std::find_if(outputs_.begin(),outputs_.end(),[&](const Output& o){return o.name==name&&o.material.has_value();});
-        Json settings=*output.preview;settings["texture_srgb"]=Json::object();
+        auto begin=Clock::now();Json materials=Json::object();for(const auto& o:outputs_)if(o.material)materials[o.name]=*o.material;
+        Json settings=*output.preview;settings["texture_srgb"]=Json::object();settings["threads"]=options_.threads;
+        settings["asset_directory"]=(options_.out/"preview-materials"/(output.name+".assets")).string();
         for(const auto& source:outputs_)if(!source.material&&!source.preview&&!source.sheet)settings["texture_srgb"][source.name]=source.srgb&&outputKinds.at(source.name)==Kind::Color;
         for(const auto& warning:settings.value("warnings",Json::array()))std::cerr<<"preview warning: "<<warning.get<std::string>()<<'\n';
-        auto image=renderPreview(settings,*material.material,options_.out,memory);
+        Json feedback;auto image=renderPreview(settings,materials,options_.out,memory,&feedback);
+        for(const auto& file:feedback["files"])stats["files"].push_back(file);
         writeImage(options_.out/output.name,*image,"png",8,false,true,background_);
         stats["files"].push_back((options_.out/output.name).string());
         stats["output_details"].push_back({{"file",output.name},{"type","preview"},{"renderer","filament"},{"projection",settings.at("projection")},{"size",{image->width,image->height}},{"views",output.preview->at("views")},{"warnings",output.preview->value("warnings",Json::array())},{"format","png"}});
+        stats["output_details"].back()["materials"]=feedback["materials"];
+        for(const auto& warning:feedback["warnings"])stats["output_details"].back()["warnings"].push_back(warning);
         exportMs+=std::chrono::duration<double,std::milli>(Clock::now()-begin).count();
     }
     stats["peak_buffer_mb"] = memory->peak / (1024.0 * 1024.0);

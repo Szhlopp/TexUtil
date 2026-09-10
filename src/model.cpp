@@ -155,7 +155,11 @@ void unwrap(Mesh& mesh, int size, int padding) {
     std::unique_ptr<xatlas::Atlas,decltype(&xatlas::Destroy)> atlas(xatlas::Create(),xatlas::Destroy);
     std::vector<uint32_t> indices,materials;indices.reserve(mesh.triangles.size()*3);
     for(const auto& t:mesh.triangles){indices.insert(indices.end(),t.vertices,t.vertices+3);materials.push_back(t.material);}
-    xatlas::MeshDecl decl{};decl.vertexCount=uint32_t(mesh.vertices.size());decl.vertexPositionData=&mesh.vertices[0].position;decl.vertexPositionStride=sizeof(Vertex);decl.vertexNormalData=&mesh.vertices[0].normal;decl.vertexNormalStride=sizeof(Vertex);
+    // xatlas has absolute geometric tolerances. Normalize only its working coordinates,
+    // so centimeter- and meter-scale assets unwrap identically without losing small faces.
+    std::vector<Vec3> atlasPositions;float atlasScale=100.f/length(mesh.maximum-mesh.minimum);
+    for(const auto& v:mesh.vertices)atlasPositions.push_back((v.position-mesh.minimum)*atlasScale);
+    xatlas::MeshDecl decl{};decl.vertexCount=uint32_t(mesh.vertices.size());decl.vertexPositionData=atlasPositions.data();decl.vertexPositionStride=sizeof(Vec3);decl.vertexNormalData=&mesh.vertices[0].normal;decl.vertexNormalStride=sizeof(Vertex);
     decl.indexCount=uint32_t(indices.size());decl.indexData=indices.data();decl.indexFormat=xatlas::IndexFormat::UInt32;decl.faceMaterialData=materials.data();
     require(xatlas::AddMesh(atlas.get(),decl)==xatlas::AddMeshError::Success,"xatlas rejected mesh");
     xatlas::PackOptions pack;pack.resolution=size;pack.padding=padding;pack.bilinear=true;
@@ -165,6 +169,7 @@ void unwrap(Mesh& mesh, int size, int padding) {
     for(size_t i=0;i<output.vertexCount;++i){auto& v=output.vertexArray[i];require(v.atlasIndex==0,"xatlas could not unwrap a face");vertices[i]=mesh.vertices[v.xref];vertices[i].uv={v.uv[0]/atlas->width,1-v.uv[1]/atlas->height};vertices[i].hasUv=true;}
     for(size_t i=0;i<mesh.triangles.size();++i)for(int j=0;j<3;++j)mesh.triangles[i].vertices[j]=output.indexArray[i*3+j];
     mesh.vertices=std::move(vertices);
+    require(checkUvs(mesh,std::min(size,1024))["usable_for_baking"].get<bool>(),"generated atlas still overlaps or contains invalid UVs; inspect duplicate/intersecting geometry");
 }
 void saveObj(const Mesh& mesh, const std::filesystem::path& path) {
     require(path.extension()==".obj","unwrapped output must use .obj");

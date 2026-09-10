@@ -1,0 +1,97 @@
+{
+  "size": 1024,
+  "tile": true,
+  "imports": {},
+  "nodes": {
+    "flow": {
+      "op": "clouds",
+      "scale": 5,
+      "octaves": 3,
+      "stretch": [
+        1,
+        2
+      ],
+      "seed": 91
+    },
+    "height": {
+      "op": "levels",
+      "input": "flow",
+      "out": [
+        0.5,
+        0.5006
+      ]
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.018,
+      "convention": "directx"
+    },
+    "color": {
+      "op": "ramp",
+      "input": "flow",
+      "stops": [
+        [
+          0,
+          "#06752b"
+        ],
+        [
+          0.5,
+          "#16bb39"
+        ],
+        [
+          1,
+          "#51e45d"
+        ]
+      ]
+    },
+    "roughness": {
+      "op": "constant",
+      "value": 0.07
+    }
+  },
+  "outputs": {
+    "color.png": {
+      "node": "color",
+      "bits": 8
+    },
+    "roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "normal.png": {
+      "node": "normal",
+      "bits": 16
+    },
+    "material.mtlx": {
+      "type": "materialx",
+      "name": "EmeraldBrew",
+      "version": "1.39",
+      "inputs": {
+        "base_color": {
+          "texture": "color.png"
+        },
+        "specular_roughness": {
+          "texture": "roughness.png"
+        },
+        "specular_IOR": 1.333,
+        "metalness": 0,
+        "transmission": 0.88,
+        "transmission_color": {
+          "texture": "color.png"
+        },
+        "transmission_depth": 1,
+        "emission": 0.045,
+        "emission_color": "#0c971f"
+      },
+      "normal": {
+        "texture": "normal.png",
+        "convention": "directx"
+      }
+    }
+  }
+}

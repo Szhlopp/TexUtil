@@ -31,5 +31,5 @@ namespace tex {
 bool filamentAvailable();
 Json parsePreview(const Json& settings, const std::filesystem::path& base);
 void validatePreviewReferences(std::vector<Output>& outputs);
-ImagePtr renderPreview(const Json& settings, const Json& material, const std::filesystem::path& outputDirectory, std::shared_ptr<Memory> memory);
+ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const std::filesystem::path& outputDirectory, std::shared_ptr<Memory> memory, Json* report=nullptr);
 }

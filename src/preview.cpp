@@ -49,11 +49,29 @@ bool filamentAvailable() {
     return false;
 #endif
 }
+namespace {
+Json previewBinding(Json value, const std::filesystem::path& base) {
+    if(value.is_string()){auto path=value.get<std::string>();value=std::filesystem::path(path).extension()==".json"?Json{{"graph",path}}:Json{{"material",path}};}
+    fields(value,{"graph","material","projection","projection_scale","projection_blend","thickness","refraction"});
+    require(value.contains("graph")||value.contains("material"),"binding requires graph or material");
+    if(value.contains("material"))require(value["material"].is_string()&&!value["material"].get<std::string>().empty(),"binding material must be an output filename");
+    if(value.contains("graph")){require(value["graph"].is_string(),"graph must be a JSON filename");auto path=std::filesystem::absolute(base/value["graph"].get<std::string>()).lexically_normal();require(std::filesystem::is_regular_file(path),"material graph does not exist: "+path.string());value["graph"]=path.string();}
+    if(value.contains("refraction"))require(value["refraction"]=="auto"||value["refraction"]=="opaque","refraction must be auto or opaque");
+    if(value.contains("projection"))require(value["projection"]=="uv"||value["projection"]=="triplanar","binding projection must be uv or triplanar");
+    if(value.contains("projection_scale"))number(value["projection_scale"],.0001f,10000,"projection_scale");
+    if(value.contains("projection_blend"))number(value["projection_blend"],1,16,"projection_blend");
+    if(value.contains("thickness"))number(value["thickness"],0,10,"thickness");
+    return value;
+}
+}
 Json parsePreview(const Json& input, const std::filesystem::path& base) {
-    fields(input,{"type","material","model","environment","rotation","views","size","columns","exposure","intensity","environment_rotation","background","show_environment","thickness","projection","projection_scale","projection_blend"});
+    fields(input,{"type","material","materials","model","environment","rotation","views","size","columns","exposure","intensity","environment_rotation","background","show_environment","thickness","projection","projection_scale","projection_blend"});
     require(filamentAvailable(),"Filament is not enabled; configure with TEXUTIL_FILAMENT_ROOT (docs/MODELS.md)");
     Json result=input;
-    for(const auto* key:{"model","material"})require(result.contains(key)&&result[key].is_string()&&!result[key].get<std::string>().empty(),std::string(key)+" is required");
+    require(result.contains("model")&&result["model"].is_string(),"model is required");
+    require(result.contains("material")||result.contains("materials"),"material or materials is required");
+    if(result.contains("material"))result["material"]=previewBinding(result["material"],base);
+    if(result.contains("materials")){require(result["materials"].is_object()&&!result["materials"].empty()&&result["materials"].size()<=64,"materials needs 1..64 named bindings");for(auto& binding:result["materials"].items())binding.value()=previewBinding(binding.value(),base);}
     result["model"]=std::filesystem::absolute(base/result["model"].get<std::string>()).lexically_normal().string();require(std::filesystem::is_regular_file(result["model"].get<std::string>()),"model file does not exist");
     auto environment=result.value("environment",Json("studio"));require(environment.is_string(),"environment must be studio, outdoor, or an HDR filename");
     std::string env=environment.get<std::string>();auto path=(env=="studio"||env=="outdoor")?assetPath(env):std::filesystem::absolute(base/env).lexically_normal();
@@ -73,8 +91,11 @@ Json parsePreview(const Json& input, const std::filesystem::path& base) {
 }
 void validatePreviewReferences(std::vector<Output>& outputs) {
     for(auto& o:outputs)if(o.preview) {
-        auto name=o.preview->at("material").get<std::string>();auto it=std::find_if(outputs.begin(),outputs.end(),[&](const Output& other){return other.name==name&&other.material.has_value();});require(it!=outputs.end(),"material must reference a MaterialX output filename: "+name);
         auto& warnings=(*o.preview)["warnings"]=Json::array();
+        std::vector<Json> bindings;if(o.preview->contains("material"))bindings.push_back(o.preview->at("material"));
+        if(o.preview->contains("materials"))for(const auto& binding:o.preview->at("materials"))bindings.push_back(binding);
+        for(const auto& binding:bindings){if(binding.contains("graph"))continue;
+        auto name=binding.at("material").get<std::string>();auto it=std::find_if(outputs.begin(),outputs.end(),[&](const Output& other){return other.name==name&&other.material.has_value();});require(it!=outputs.end(),"material must reference a MaterialX output filename: "+name);
         const std::set<std::string> textured={"base_color","specular_roughness","metalness","transmission","transmission_color","emission_color"};
         const std::set<std::string> constants={"specular_IOR","coat","coat_roughness","emission","transmission_depth","thin_walled","base"};
         for(auto input=it->material->at("inputs").begin();input!=it->material->at("inputs").end();++input) {
@@ -83,6 +104,7 @@ void validatePreviewReferences(std::vector<Output>& outputs) {
         }
         if(it->material->contains("displacement"))warnings.push_back("Preview uses the original mesh silhouette; MaterialX displacement is not applied");
         if(it->material->at("inputs").contains("base"))warnings.push_back("Standard Surface base weight is approximated through the Filament metalness/transmission model");
+        }
     }
 }
 }
@@ -124,6 +146,7 @@ extern "C" void* MTLCreateSystemDefaultDevice(void);
 #include <fstream>
 #include "preview_solid.h"
 #include "preview_thin.h"
+#include "preview_opaque.h"
 
 namespace tex {
 namespace {
@@ -133,12 +156,13 @@ struct Gpu {
     filament::Scene* scene=nullptr;filament::View* view=nullptr;filament::Renderer* renderer=nullptr;filament::SwapChain* swap=nullptr;
     filament::Material* material=nullptr;filament::MaterialInstance* instance=nullptr;filament::VertexBuffer* vb=nullptr;filament::IndexBuffer* ib=nullptr;
     filament::IndirectLight* light=nullptr;filament::Skybox* sky=nullptr;filament::ColorGrading* grading=nullptr;
+    std::vector<filament::Material*> materials;std::vector<filament::MaterialInstance*> instances;
     utils::Entity cameraEntity{},meshEntity{};std::vector<filament::Texture*> textures;
     ~Gpu() {
         if(!engine)return;engine->flushAndWait();
         if(view)engine->destroy(view);if(scene)engine->destroy(scene);if(meshEntity){engine->destroy(meshEntity);utils::EntityManager::get().destroy(meshEntity);}
         if(cameraEntity){engine->destroyCameraComponent(cameraEntity);utils::EntityManager::get().destroy(cameraEntity);}
-        if(instance)engine->destroy(instance);if(material)engine->destroy(material);if(vb)engine->destroy(vb);if(ib)engine->destroy(ib);
+        for(auto* i:instances)engine->destroy(i);for(auto* m:materials)engine->destroy(m);if(vb)engine->destroy(vb);if(ib)engine->destroy(ib);
         if(light)engine->destroy(light);if(sky)engine->destroy(sky);if(grading)engine->destroy(grading);for(auto* t:textures)engine->destroy(t);
         if(renderer)engine->destroy(renderer);if(swap)engine->destroy(swap);filament::Engine::destroy(&engine);
     }
@@ -174,9 +198,33 @@ void environment(Gpu& gpu, const Json& settings) {
     if(settings.at("show_environment").get<bool>()){gpu.sky=filament::Skybox::Builder().environment(cube).build(*gpu.engine);gpu.scene->setSkybox(gpu.sky);}
 }
 }
-ImagePtr renderPreview(const Json& settings, const Json& material, const std::filesystem::path& outputDirectory, std::shared_ptr<Memory> memory) {
+ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const std::filesystem::path& outputDirectory, std::shared_ptr<Memory> memory, Json* report) {
     using namespace filament;
-    auto mesh=model::load(settings.at("model").get<std::string>());auto check=model::checkUvs(mesh,64);bool triplanar=settings.at("projection")=="triplanar",uvFrame=check["usable_for_preview"].get<bool>();require(triplanar||uvFrame,"mesh has missing/degenerate UVs; use triplanar projection or run model uv");
+    Json feedback={{"materials",Json::array()},{"warnings",Json::array()},{"files",Json::array()}};
+    auto mesh=model::load(settings.at("model").get<std::string>());auto check=model::checkUvs(mesh,64);bool uvFrame=check["usable_for_preview"].get<bool>();
+    struct Prepared { Json material,settings;std::filesystem::path folder;uint32_t slot; };
+    std::vector<Prepared> prepared;std::set<uint32_t> used;for(const auto& t:mesh.triangles)used.insert(t.material);
+    std::set<std::string> matched;
+    for(auto slot:used){Json binding;auto names=settings.value("materials",Json::object());auto key=mesh.materials.at(slot);if(names.contains(key)){binding=names[key];matched.insert(key);}else if(names.contains("#"+std::to_string(slot))){key="#"+std::to_string(slot);binding=names[key];matched.insert(key);}else {require(settings.contains("material"),"no binding for mesh material: "+key);binding=settings.at("material");}
+        Json local=settings;for(const char* field:{"projection","projection_scale","projection_blend","thickness","refraction"})if(binding.contains(field))local[field]=binding[field];
+        require(local.at("projection")=="triplanar"||uvFrame,"UV binding requires usable UVs; run model uv or choose triplanar");
+        Json material;auto folder=outputDirectory;
+        if(binding.contains("graph")){
+            auto path=std::filesystem::path(binding["graph"].get<std::string>());require(std::filesystem::file_size(path)<=8*1024*1024,"material graph exceeds 8 MiB");std::ifstream file(path);require(bool(file),"cannot read material graph");Json doc=Json::parse(file);
+            require(doc.contains("outputs")&&doc["outputs"].is_object(),"material graph needs outputs");std::string name=binding.value("material",std::string{});
+            if(name.empty()){for(auto it=doc["outputs"].begin();it!=doc["outputs"].end();++it)if(it.value().is_object()&&it.value().value("type",std::string{})=="materialx"){require(name.empty(),"graph has multiple MaterialX outputs; specify material: "+path.string());name=it.key();}}
+            require(!name.empty()&&doc["outputs"].contains(name),"material graph has no selected MaterialX output");material=parseMaterialX(doc["outputs"][name]);
+            std::set<std::string> textures;std::function<void(const Json&)> collect=[&](const Json& v){if(v.is_object()){if(v.contains("texture")&&v["texture"].is_string())textures.insert(v["texture"].get<std::string>());for(const auto& child:v)collect(child);}else if(v.is_array())for(const auto& child:v)collect(child);};collect(material);
+            Json exports={{name,doc["outputs"][name]}};local["texture_srgb"]=Json::object();for(const auto& texture:textures){require(doc["outputs"].contains(texture),"material texture output is missing: "+texture);exports[texture]=doc["outputs"][texture];auto o=exports[texture];require(!o.is_object()||o.value("type",std::string("image"))=="image","material texture must reference an image output");local["texture_srgb"][texture]=o.is_object()?o.value("srgb",doc.value("srgb",true)):doc.value("srgb",true);}
+            doc["outputs"]=exports;local["repeat"]=doc.value("tile",false);Options options;options.threads=settings.value("threads",0u);options.memoryMb=std::max<size_t>(1,(memory->limit-memory->current)/(1024*1024));folder=settings.at("asset_directory").get<std::string>();folder/=std::to_string(slot);options.out=folder;for(auto it=exports.begin();it!=exports.end();++it)require(std::filesystem::weakly_canonical(folder/it.key())!=std::filesystem::weakly_canonical(path),"material export would overwrite its recipe");
+            auto rendered=Graph(doc,path.parent_path(),options).render();for(const auto& file:rendered["files"])feedback["files"].push_back(file);
+            Output materialOutput;materialOutput.name=name;materialOutput.material=material;Output previewOutput;previewOutput.preview=Json{{"material",{{"material",name}}}};std::vector<Output> checkOutputs={materialOutput,previewOutput};validatePreviewReferences(checkOutputs);for(const auto& warning:checkOutputs.back().preview->at("warnings")){feedback["warnings"].push_back(key+": "+warning.get<std::string>());std::fprintf(stderr,"preview warning (%s): %s\n",key.c_str(),warning.get<std::string>().c_str());}
+        }else{auto name=binding.at("material").get<std::string>();require(materialOutputs.contains(name),"unknown material output: "+name);material=materialOutputs[name];}
+        feedback["materials"].push_back({{"slot",slot},{"name",mesh.materials[slot]},{"binding",binding},{"projection",local["projection"]},{"asset_directory",folder.string()},{"refraction",local.value("refraction",std::string("auto"))}});
+        if(local.value("refraction",std::string("auto"))=="opaque"&&material["inputs"].contains("transmission")){auto warning=key+": preview disables transmission; exported MaterialX remains unchanged";feedback["warnings"].push_back(warning);std::fprintf(stderr,"preview warning: %s\n",warning.c_str());}
+        prepared.push_back({material,local,folder,slot});
+    }
+    if(settings.contains("materials"))for(auto it=settings["materials"].begin();it!=settings["materials"].end();++it)require(matched.count(it.key()),"binding does not match any used material slot: "+it.key());
     auto log=[](void*,const char* message){std::fputs(message,stderr);};for(auto* stream:{&utils::slog.d,&utils::slog.e,&utils::slog.w,&utils::slog.i,&utils::slog.v})stream->setConsumer(log,nullptr);
     Gpu gpu;
 #ifdef __APPLE__
@@ -191,8 +239,10 @@ ImagePtr renderPreview(const Json& settings, const Json& material, const std::fi
     PBRNeutralToneMapper mapper;gpu.grading=ColorGrading::Builder().toneMapper(&mapper).build(engine);gpu.view->setColorGrading(gpu.grading);
     auto background=color(settings.at("background"));Renderer::ClearOptions clear;clear.clear=true;clear.clearColor={background[0],background[1],background[2],1};gpu.renderer->setClearOptions(clear);
     gpu.cameraEntity=utils::EntityManager::get().create();auto* camera=engine.createCamera(gpu.cameraEntity);camera->setProjection(40,1,.05,20);camera->lookAt({0,0,3.2},{0,0,0});camera->setExposure(16,1.f/125,100*std::pow(2.f,settings.at("exposure").get<float>()));gpu.view->setCamera(camera);
+    for(const auto& item:prepared){const auto& material=item.material;const auto& settings=item.settings;const auto& outputDirectory=item.folder;bool triplanar=settings.at("projection")=="triplanar";
     auto inputs=material.at("inputs");bool thin=inputs.value("thin_walled",false);
-    gpu.material=Material::Builder().package(thin?preview_thin:preview_solid,thin?sizeof(preview_thin):sizeof(preview_solid)).build(engine);require(gpu.material,"cannot create preview material");gpu.instance=gpu.material->createInstance();
+    bool refractive=settings.value("refraction",std::string("auto"))!="opaque"&&inputs.contains("transmission")&&(inputs["transmission"].is_object()||inputs["transmission"].get<float>()>0);
+    gpu.material=Material::Builder().package(!refractive?preview_opaque:thin?preview_thin:preview_solid,!refractive?sizeof(preview_opaque):thin?sizeof(preview_thin):sizeof(preview_solid)).build(engine);require(gpu.material,"cannot create preview material");gpu.materials.push_back(gpu.material);gpu.instance=gpu.material->createInstance();gpu.instances.push_back(gpu.instance);
     bool repeat=triplanar||settings.value("repeat",true);
     gpu.instance->setParameter("triplanar",triplanar);gpu.instance->setParameter("projectionBlend",settings.at("projection_blend").get<float>());
     for(const auto& entry:std::vector<std::pair<std::string,std::string>>{{"base_color","colorMap"},{"specular_roughness","roughnessMap"},{"metalness","metalnessMap"},{"transmission","transmissionMap"},{"emission_color","emissionMap"},{"transmission_color","transmissionColorMap"}})bind(gpu,inputs,entry.first,entry.second,outputDirectory,memory,entry.first!="base_color"&&entry.first!="emission_color"&&entry.first!="transmission_color",{1,1,1,1},repeat,settings.at("texture_srgb"));
@@ -203,10 +253,12 @@ ImagePtr renderPreview(const Json& settings, const Json& material, const std::fi
     auto tint=inputs.contains("transmission_color")&&inputs["transmission_color"].is_object()?fm::float3{1}:rgb(inputs,"transmission_color",{1,1,1,1});float depth=std::max(.0001f,scalar(inputs,"transmission_depth",1));gpu.instance->setParameter("transmissionColor",tint);gpu.instance->setParameter("transmissionDepth",depth);gpu.instance->setParameter("thickness",settings.at("thickness").get<float>());
     ImagePtr normal;if(material.contains("normal")){normal=readPng(outputDirectory/material["normal"]["texture"].get<std::string>(),Kind::Normal,false,memory);gpu.instance->setParameter("normalScale",material["normal"].value("scale",1.f));gpu.instance->setParameter("normalSign",material["normal"].value("convention",std::string("directx"))=="directx"?-1.f:1.f);}else{normal=std::make_shared<Image>(1,1,Kind::Normal,memory);normal->set(0,0,{.5,.5,1,1});gpu.instance->setParameter("normalScale",1.f);gpu.instance->setParameter("normalSign",1.f);}
     auto* normalTexture=texture(gpu,normal->width,normal->height,normal->pixels.data());gpu.instance->setParameter("normalMap",normalTexture,TextureSampler(TextureSampler::MinFilter::LINEAR_MIPMAP_LINEAR,TextureSampler::MagFilter::LINEAR,repeat?TextureSampler::WrapMode::REPEAT:TextureSampler::WrapMode::CLAMP_TO_EDGE));normal.reset();
+    }
     struct GpuVertex { fm::float3 position;fm::quatf tangent;fm::float2 uv; };
     std::vector<fm::float3> positions,normals;std::vector<fm::float2> uvs;std::vector<fm::uint3> triangles;auto center=(mesh.minimum+mesh.maximum)*.5f;float factor=2/model::length(mesh.maximum-mesh.minimum);
-    gpu.instance->setParameter("projectionScale",settings.at("projection_scale").get<float>()/factor);
-    for(auto v:mesh.vertices){auto p=(v.position-center)*factor;positions.push_back({p.x,p.y,p.z});normals.push_back({v.normal.x,v.normal.y,v.normal.z});uvs.push_back(uvFrame?fm::float2{v.uv.x,1-v.uv.y}:fm::float2{0});}for(auto t:mesh.triangles)triangles.push_back({t.vertices[0],t.vertices[1],t.vertices[2]});
+    for(size_t i=0;i<prepared.size();++i)gpu.instances[i]->setParameter("projectionScale",prepared[i].settings.at("projection_scale").get<float>()/factor);
+    for(auto v:mesh.vertices){auto p=(v.position-center)*factor;positions.push_back({p.x,p.y,p.z});normals.push_back({v.normal.x,v.normal.y,v.normal.z});uvs.push_back(uvFrame?fm::float2{v.uv.x,1-v.uv.y}:fm::float2{0});}
+    std::vector<size_t> offsets,counts;for(const auto& item:prepared){offsets.push_back(triangles.size()*3);for(auto t:mesh.triangles)if(t.material==item.slot)triangles.push_back({t.vertices[0],t.vertices[1],t.vertices[2]});counts.push_back(triangles.size()*3-offsets.back());}
     geometry::SurfaceOrientation::Builder orientationBuilder;orientationBuilder.vertexCount(positions.size()).normals(normals.data());
     if(uvFrame)orientationBuilder.positions(positions.data()).uvs(uvs.data()).triangleCount(triangles.size()).triangles(triangles.data());
     std::unique_ptr<geometry::SurfaceOrientation> orientation(orientationBuilder.build());require(bool(orientation),"cannot generate mesh tangent frames");
@@ -214,21 +266,24 @@ ImagePtr renderPreview(const Json& settings, const Json& material, const std::fi
     gpu.vb=VertexBuffer::Builder().vertexCount(uint32_t(vertices.size())).bufferCount(1).attribute(VertexAttribute::POSITION,0,VertexBuffer::AttributeType::FLOAT3,offsetof(GpuVertex,position),sizeof(GpuVertex)).attribute(VertexAttribute::TANGENTS,0,VertexBuffer::AttributeType::FLOAT4,offsetof(GpuVertex,tangent),sizeof(GpuVertex)).attribute(VertexAttribute::UV0,0,VertexBuffer::AttributeType::FLOAT2,offsetof(GpuVertex,uv),sizeof(GpuVertex)).build(engine);
     gpu.ib=IndexBuffer::Builder().indexCount(uint32_t(triangles.size()*3)).bufferType(IndexBuffer::IndexType::UINT).build(engine);
     gpu.vb->setBufferAt(engine,0,VertexBuffer::BufferDescriptor(vertices.data(),vertices.size()*sizeof(GpuVertex)));gpu.ib->setBuffer(engine,IndexBuffer::BufferDescriptor(triangles.data(),triangles.size()*sizeof(fm::uint3)));
-    gpu.meshEntity=utils::EntityManager::get().create();RenderableManager::Builder(1).boundingBox({{0,0,0},{1,1,1}}).material(0,gpu.instance).geometry(0,RenderableManager::PrimitiveType::TRIANGLES,gpu.vb,gpu.ib).culling(false).build(engine,gpu.meshEntity);gpu.scene->addEntity(gpu.meshEntity);
+    gpu.meshEntity=utils::EntityManager::get().create();RenderableManager::Builder renderable(prepared.size());renderable.boundingBox({{0,0,0},{1,1,1}}).culling(false);
+    for(size_t i=0;i<prepared.size();++i)renderable.material(i,gpu.instances[i]).geometry(i,RenderableManager::PrimitiveType::TRIANGLES,gpu.vb,gpu.ib,offsets[i],counts[i]);
+    renderable.build(engine,gpu.meshEntity);gpu.scene->addEntity(gpu.meshEntity);
     environment(gpu,settings);
     const auto& views=settings.at("views");Sheet sheet;ImagePtr result;
     if(views.size()>1){Json items=Json::array();for(const auto& v:views)items.push_back({{"node","view"},{"label","Rotation "+v.dump()}});sheet=parseSheet({{"items",items},{"columns",std::min(settings.at("columns").get<int>(),int(views.size()))},{"cell",size},{"title","Filament / HDR material preview"}});result=createSheet(sheet,memory);}
     Workers workers(1);
-    for(size_t i=0;i<views.size();++i){const auto& v=views[i];auto& tm=engine.getTransformManager();auto instance=tm.getInstance(gpu.meshEntity);auto rotation=fm::mat4f::rotation(v[2].get<float>()*.01745329252f,fm::float3{0,0,1})*fm::mat4f::rotation(v[1].get<float>()*.01745329252f,fm::float3{0,1,0})*fm::mat4f::rotation(v[0].get<float>()*.01745329252f,fm::float3{1,0,0});tm.setTransform(instance,rotation);gpu.instance->setParameter("objectRotation",fm::mat3f(rotation[0].xyz,rotation[1].xyz,rotation[2].xyz));
+    for(size_t i=0;i<views.size();++i){const auto& v=views[i];auto& tm=engine.getTransformManager();auto instance=tm.getInstance(gpu.meshEntity);auto rotation=fm::mat4f::rotation(v[2].get<float>()*.01745329252f,fm::float3{0,0,1})*fm::mat4f::rotation(v[1].get<float>()*.01745329252f,fm::float3{0,1,0})*fm::mat4f::rotation(v[0].get<float>()*.01745329252f,fm::float3{1,0,0});tm.setTransform(instance,rotation);for(auto* materialInstance:gpu.instances)materialInstance->setParameter("objectRotation",fm::mat3f(rotation[0].xyz,rotation[1].xyz,rotation[2].xyz));
         std::vector<uint8_t> pixels(size_t(size)*size*4);for(int frame=0;frame<3;++frame){require(gpu.renderer->beginFrame(gpu.swap),"cannot begin preview frame");gpu.renderer->render(gpu.view);if(frame==2)gpu.renderer->readPixels(0,0,size,size,backend::PixelBufferDescriptor(pixels.data(),pixels.size(),backend::PixelDataFormat::RGBA,backend::PixelDataType::UBYTE));gpu.renderer->endFrame();engine.flushAndWait();}
         auto view=std::make_shared<Image>(size,size,Kind::Color,memory);for(int y=0;y<size;++y)for(int x=0;x<size;++x){size_t ix=(size_t(size-1-y)*size+x)*4;view->set(x,y,{toLinear(pixels[ix]/255.f),toLinear(pixels[ix+1]/255.f),toLinear(pixels[ix+2]/255.f),1});}
         if(views.size()>1)drawSheetItem(*result,sheet,i,*view,workers);else result=view;
     }
+    if(report)*report=std::move(feedback);
     return result;
 }
 }
 #else
 namespace tex {
-ImagePtr renderPreview(const Json&, const Json&, const std::filesystem::path&, std::shared_ptr<Memory>) { throw std::runtime_error("Filament support is not enabled"); }
+ImagePtr renderPreview(const Json&, const Json&, const std::filesystem::path&, std::shared_ptr<Memory>, Json*) { throw std::runtime_error("Filament support is not enabled"); }
 }
 #endif
