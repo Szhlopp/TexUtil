@@ -22,6 +22,9 @@ int main(int argc, char** argv) {
         save(work/"source.json",source);
         Json bake={{"type","export_bake"},{"model","plane.obj"},{"size",32},{"padding",4},{"material",{{"graph","source.json"},{"height","height.png"}}}};
         auto run=[&](const Json& settings,const std::string& dir,unsigned threads=1){Options o;o.out=work/dir;o.threads=threads;o.memoryMb=64;return Graph({{"nodes",Json::object()},{"outputs",{{"manifest.json",settings}}}},work,o).render();};
+        // Large atlases pass validation, then fail a small budget before allocating the raster.
+        for(int size:{8192,16384}){auto large=bake;large["size"]=size;auto parsed=parseExportBake(large,work);expect(parsed["size"]==size,"8K/16K bake size must be accepted");bool memoryRejected=false;try{run(large,"large-budget");}catch(const std::exception& e){memoryRejected=std::string(e.what()).find("memory budget too small")!=std::string::npos;}expect(memoryRejected,"large bake must fail on budget, not resolution");}
+        auto oversized=bake;oversized["size"]=16385;rejects([&]{parseExportBake(oversized,work);});
         run(bake,"uv");auto memory=std::make_shared<Memory>();auto load=[&](std::string p,Kind k=Kind::Scalar,bool srgb=false){return readPng(work/p,k,srgb,memory);};
         auto c=load("uv/manifest.assets/1/color.png",Kind::Color,true);expect(std::abs(c->get(16,16)[0]-.5)<.005,"color must be encoded exactly once");
         auto r=load("uv/manifest.assets/1/roughness.png");expect(std::abs(r->get(16,16)[0]-.3)<.0001,"constant roughness bake");

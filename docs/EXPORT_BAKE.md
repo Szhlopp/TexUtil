@@ -70,13 +70,22 @@ and edit the material recipe's size/seed deliberately.
 | Setting | Behavior |
 | --- | --- |
 | `model` | Required static OBJ, FBX, glTF or GLB with a unique, non-overlapping 0..1 UV atlas. |
-| `size` | Square bake resolution, 32..4096, default 1024. |
+| `size` | Square bake resolution, 32..16384, default 1024. |
 | `padding` | Border expansion in output texels, 0..64, default 8. |
 | `maps` | Requested maps; defaults to all five shown above. |
 | `normal_convention` | `directx` (default) or `opengl`. |
 | `projection` | Default sampling mode for bindings: `uv` (default) or `triplanar`. |
 | `projection_scale` | Triplanar repeats per source mesh unit, 0.0001..10000, default 1. |
 | `projection_blend` | Triplanar normal-weight exponent, 1..16, default 4. |
+
+For 16K, set `"size":16384` on the bake output and supply a suitable memory budget,
+for example `./build/texutil bake.json --out out/baked --memory 16384`.
+The baker reserves about 2.25 GiB at 8192² or 9 GiB at 16384², plus mesh and source
+graph memory. `--memory` is in MiB; the default 1024 is insufficient for either.
+The example budget is not a guarantee that every source graph fits. Large bakes
+use full in-memory buffers and retain the existing budget checks. Padding scans
+and per-material atlases also increase processing time and output size. Source
+recipe resolution remains independent of bake resolution.
 
 Bindings can override projection controls and supply `height`, `height_scale` and
 `height_midlevel`. Preview controls `refraction`, `thickness`, `render_order`,

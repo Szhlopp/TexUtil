@@ -113,7 +113,7 @@ Mesh load(const std::filesystem::path& path) {
     Mesh mesh=(ext==".gltf"||ext==".glb")?loadGltf(path):loadFbx(path);bounds(mesh);return mesh;
 }
 Raster rasterize(const Mesh& mesh, int size) {
-    require(size>=1&&size<=4096,"raster size must be 1..4096");
+    require(size>=1&&size<=16384,"raster size must be 1..16384");
     Raster result{size,std::vector<int32_t>(size_t(size)*size,-1),std::vector<Vec2>(size_t(size)*size)};
     for(size_t f=0;f<mesh.triangles.size();++f) {
         auto t=mesh.triangles[f];Vec2 uv[3];bool valid=true;

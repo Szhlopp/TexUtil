@@ -657,9 +657,12 @@ require the original prepared bottle and geometry bakes described above.
 - Bind exact material names or `#index` slots to external recipe JSONs, with an
   optional MaterialX output selector. A default `material` covers remaining slots.
   ExportBake does not accept local parent MaterialX outputs or arbitrary disk MTLX.
-- Set bake `size:32..4096`, `padding:0..64`, and `normal_convention`. Defaults are
+- Set bake `size:32..16384`, `padding:0..64`, and `normal_convention`. Defaults are
   1024, 8, and `directx`. CLI `--size` does not change bake resolution or external
   recipe sizes. Each external recipe retains its seed and imports.
+- 8K/16K ExportBake is supported with sufficient `--memory` (MiB). Raster/output
+  reserves are about 2.25/9 GiB respectively, plus source graph and mesh memory.
+  The default 1024 MiB budget will reject those sizes before the large allocation.
 - UV and triplanar projection use the same controls as previews. Source atlas masks
   must use UV projection; do not reinterpret them as triplanar detail.
 - Explicit per-binding `height` names a scalar PNG output of the recipe. Otherwise
