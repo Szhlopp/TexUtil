@@ -1,0 +1,33 @@
+{
+  "nodes": {},
+  "outputs": {
+    "manifest.json": {
+      "type": "export_bake",
+      "model": "../../assets/models/preview-torus.obj",
+      "size": 1024,
+      "padding": 8,
+      "normal_convention": "directx",
+      "maps": [
+        "color",
+        "roughness",
+        "metalness",
+        "height",
+        "normal"
+      ],
+      "materials": {
+        "body": {
+          "graph": "../cork.json",
+          "material": "cork.mtlx",
+          "projection": "triplanar",
+          "projection_scale": 2
+        },
+        "band": {
+          "graph": "../wood.json",
+          "material": "wood.mtlx",
+          "projection": "triplanar",
+          "projection_scale": 2
+        }
+      }
+    }
+  }
+}

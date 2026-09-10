@@ -2,6 +2,7 @@ material {
     name : TexUtilPreview,
     shadingModel : lit,
     doubleSided : true,
+    flipUV : true,
     refractionMode : cubemap,
     refractionType : solid,
     requires : [ uv0 ],

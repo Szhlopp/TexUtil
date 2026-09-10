@@ -15,6 +15,10 @@ UV or triplanar projection. See [the preview recipe](samples/models/preview.json
 and [triplanar recipe](samples/models/triplanar.json). GPU preview setup is separate
 from the CPU build below.
 
+[ExportBake](docs/EXPORT_BAKE.md) bakes UV or triplanar material recipes into color,
+roughness, metalness, height and normal textures for the model, with per-material
+MaterialX exports. It runs on the CPU; see [the sample](samples/models/export-bake.json).
+
 ## Build on macOS
 
 Install Apple Command Line Tools and [Homebrew](https://brew.sh), then install the

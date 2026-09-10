@@ -99,6 +99,7 @@ struct Output {
     std::optional<Sheet> sheet;
     std::optional<Json> material;
     std::optional<Json> preview;
+    std::optional<Json> bake;
     std::string text; // MaterialX XML; render callbacks receive a null image for this output.
     int bits = 8;
     bool alpha = false;

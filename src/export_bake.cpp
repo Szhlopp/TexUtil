@@ -42,7 +42,7 @@ Vec3 detailNormal(const Channel& c, Vec2 uv, Vec3 p, Vec3 n, Frame frame, bool t
 std::vector<int32_t> paddingSources(const Raster& raster, const Mesh& mesh, uint32_t slot, int distance) {
     int s=raster.size;std::vector<int32_t> src(raster.faces.size(),-1),next;
     for(size_t i=0;i<src.size();++i)if(raster.faces[i]>=0&&mesh.triangles[raster.faces[i]].material==slot)src[i]=int32_t(i);
-    for(int step=0;step<distance;++step){bool changed=false;next=src;for(int y=0;y<s;++y)for(int x=0;x<s;++x){size_t i=size_t(y)*s+x;if(src[i]>=0||raster.faces[i]>=0)continue;for(auto d:{std::pair<int,int>{-1,0},{1,0},{0,-1},{0,1},{-1,-1},{1,-1},{-1,1},{1,1}}){int xx=x+d.first,yy=y+d.second;if(xx>=0&&xx<s&&yy>=0&&yy<s&&src[size_t(yy)*s+xx]>=0){next[i]=src[size_t(yy)*s+xx];changed=true;break;}}}src.swap(next);if(!changed)break;}return src;
+    for(int step=0;step<distance;++step){bool changed=false;next=src;for(int y=0;y<s;++y)for(int x=0;x<s;++x){size_t i=size_t(y)*s+x;if(src[i]>=0)continue;for(auto d:{std::pair<int,int>{-1,0},{1,0},{0,-1},{0,1},{-1,-1},{1,-1},{-1,1},{1,1}}){int xx=x+d.first,yy=y+d.second;if(xx>=0&&xx<s&&yy>=0&&yy<s&&src[size_t(yy)*s+xx]>=0){next[i]=src[size_t(yy)*s+xx];changed=true;break;}}}src.swap(next);if(!changed)break;}return src;
 }
 }
 Json parseExportBake(const Json& input, const std::filesystem::path& base) {
@@ -59,7 +59,7 @@ Json parseExportBake(const Json& input, const std::filesystem::path& base) {
     return out;
 }
 Json exportBake(const Json& settings, const std::filesystem::path& manifest, const Options& options) {
-    auto mesh=model::load(settings.at("model"));int size=settings.at("size"),padding=settings.at("padding");auto check=model::checkUvs(mesh,std::min(size,512));require(check["usable_for_baking"].get<bool>(),"requires a unique 0..1 UV atlas; unwrap a new copy first");
+    auto mesh=model::load(settings.at("model").get<std::string>());int size=settings.at("size"),padding=settings.at("padding");auto check=model::checkUvs(mesh,std::min(size,512));require(check["usable_for_baking"].get<bool>(),"requires a unique 0..1 UV atlas; unwrap a new copy first");
     size_t pixels=size_t(size)*size,budget=options.memoryMb*1024ull*1024;
     size_t reserve=pixels*36+mesh.vertices.size()*(sizeof(Vertex)+sizeof(Frame)+2*sizeof(Vec3))+mesh.triangles.size()*sizeof(Triangle);
     require(budget>reserve+1024*1024,"memory budget too small for mesh, raster, padding and output; increase --memory");
@@ -81,10 +81,11 @@ Json exportBake(const Json& settings, const std::filesystem::path& manifest, con
     Json result={{"type","export_bake"},{"version",1},{"model",settings.at("model")},{"size",size},{"padding",padding},{"normal_convention",settings.at("normal_convention")},{"uv_check",check},{"files",Json::array()},{"materials",Json::array()},{"warnings",Json::array()}};
     Json preview={{"nodes",Json::object()},{"outputs",{{"preview.png",{{"type","preview"},{"model",settings.at("model")},{"materials",Json::object()},{"environment","studio"},{"views",{{25,0,0},{25,65,0}}},{"size",512}}}}}};
     auto record=[&](const std::filesystem::path& file){result["files"].push_back(file.lexically_relative(manifest.parent_path()).generic_string());};
-    auto schema=materialXInputs();Workers workers(options.threads);
+    auto schema=materialXInputs();Workers workers(options.threads);double estimatedPeak=double(reserve);
     for(auto& part:parts){const auto& binding=part.binding;auto material=part.recipe.material;auto folder=directory/std::to_string(part.slot);std::map<std::string,ImagePtr> images;
         Options sourceOptions=options;sourceOptions.width=sourceOptions.height=0;sourceOptions.seed.reset();sourceOptions.memoryMb=(budget-reserve)/(1024*1024);sourceOptions.out=folder;
-        Graph(part.recipe.document,part.recipe.base,sourceOptions).render([&](const Output& output,const ImagePtr& image){if(image)images[output.name]=image;});
+        auto sourceStats=Graph(part.recipe.document,part.recipe.base,sourceOptions).render([&](const Output& output,const ImagePtr& image){if(image)images[output.name]=image;});
+        estimatedPeak=std::max(estimatedPeak,double(reserve)+sourceStats.at("peak_buffer_mb").get<double>()*1024*1024);
         size_t sourceBytes=0;for(const auto& i:images)sourceBytes+=i.second->pixels.size()*sizeof(float);require(sourceBytes+reserve<budget,"source maps exceed bake memory budget");
         auto memory=std::make_shared<Memory>();memory->limit=budget-sourceBytes-(reserve-pixels*16);
         auto imageFor=[&](const std::string& name){require(images.count(name),"missing image output: "+name);return images.at(name);};
@@ -110,7 +111,7 @@ Json exportBake(const Json& settings, const std::filesystem::path& manifest, con
                     else value=sample(channel,uv,p,n,tri,blend,edge);
                 }out.set(x,y,value);
             }});
-            for(size_t i=0;i<sources.size();++i)if(raster.faces[i]<0&&sources[i]>=0)out.set(int(i%size),int(i/size),out.get(sources[i]%size,sources[i]/size));
+            for(size_t i=0;i<sources.size();++i)if(sources[i]>=0&&sources[i]!=int32_t(i))out.set(int(i%size),int(i/size),out.get(sources[i]%size,sources[i]/size));
             auto file=channel.name+".png";int bits=channel.kind==Kind::Color?8:16;writeImage(folder/file,out,"png",bits,false,channel.kind==Kind::Color,{0,0,0,1});record(folder/file);
             recipe["nodes"][channel.name]={{"op","image"},{"path",file},{"kind",channel.kind==Kind::Scalar?"scalar":channel.kind==Kind::Normal?"normal":"color"},{"srgb",channel.kind==Kind::Color}};recipe["outputs"][file]={{"node",channel.name},{"bits",bits},{"srgb",channel.kind==Kind::Color}};
             Output e;e.name=file;e.format="png";e.srgb=channel.kind==Kind::Color;exports.push_back(e);kinds[file]=channel.kind;channelReport[channel.name]={{"file",file},{"bits",bits},{"color_space",e.srgb?"srgb":"linear"}};
@@ -120,6 +121,7 @@ Json exportBake(const Json& settings, const std::filesystem::path& manifest, con
         auto rel=(folder/"material.json").lexically_relative(directory).generic_string();Json pb={{"graph",rel},{"projection","uv"}};for(auto k:{"refraction","thickness","culling","render_order","render_channel"})if(binding.contains(k))pb[k]=binding[k];preview["outputs"]["preview.png"]["materials"]["#"+std::to_string(part.slot)]=pb;
         result["materials"].push_back({{"slot",part.slot},{"name",mesh.materials[part.slot]},{"source_graph",binding.at("graph")},{"projection",binding.value("projection",std::string("uv"))},{"recipe",(folder/"material.json").lexically_relative(manifest.parent_path()).generic_string()},{"maps",channelReport},{"height",{{"source_present",hasHeight},{"scale",heightScale},{"midlevel",mid}}}});
     }
+    result["estimated_peak_working_mb"]=estimatedPeak/(1024*1024);result["projection_origin"]=Json::array({center.x,center.y,center.z});result["tangent_basis"]="Lengyel, original mesh UV orientation; DirectX/OpenGL sign recorded separately";
     saveJson(directory/"preview.json",preview);record(directory/"preview.json");result["preview"]=(directory/"preview.json").lexically_relative(manifest.parent_path()).generic_string();result["warnings"].push_back("Bilinear material sampling; 16-bit scalar/normal and 8-bit color PNGs clamp to 0..1. Height is not applied to geometry. The original model is required.");saveJson(manifest,result);return result;
 }
 }

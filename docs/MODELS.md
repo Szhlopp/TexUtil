@@ -61,6 +61,9 @@ slots, static geometry and normals are retained, but animation, hierarchy and
 original shader networks are not exported. `--size` is the atlas packing target,
 32..4096, and `--padding` is 0..64 pixels.
 
+For material textures (color, roughness, metalness, height and tangent normals),
+use [ExportBake](EXPORT_BAKE.md). The command below bakes geometry-derived maps.
+
 ## Bake maps from geometry
 
 ```sh
@@ -183,7 +186,8 @@ projection. Use **UV projection for geometry-baked maps** that belong to a speci
 atlas. Mixing UV atlas masks with triplanar detail is not supported in this version.
 Triplanar always repeats its textures; it does not make a non-tileable image seamless.
 This setting affects the preview only; it does not author a triplanar MaterialX
-network or bake the projection back into UV textures.
+network. Use the separate [ExportBake output](EXPORT_BAKE.md) to bake that projection
+into UV textures.
 
 Meshes are centered and scaled uniformly to fit a fixed camera. Projection scale
 uses source units before this display normalization. A single `material` applies to every slot; `materials` can assign separate recipes

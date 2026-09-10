@@ -12,6 +12,7 @@ them. Generated images belong under `out/`, which is ignored along with build pr
 
 | Sample | What it produces |
 | --- | --- |
+| `models/export-bake.json` | CPU bake of triplanar cork/wood onto the included torus UVs, with MaterialX and a generated preview recipe. See [ExportBake](../docs/EXPORT_BAKE.md). |
 | `birch.json` | Pale birch bark, horizontal marks, healed scars and separate cut-end maps for one log. Includes MaterialX and a sheet; see [controls and optional Blender preview](../docs/BIRCH.md). |
 | `handled-glass.json` | Imports glass, dust and fingerprints to make a reusable worn-glass material. See [imports](../docs/IMPORTS.md). |
 | `dust.json` | Subtle tileable dust with fine particles, flecks, lint and faint buildup. See [controls](../docs/DUST.md). |

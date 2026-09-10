@@ -22,9 +22,10 @@ became 5,992 unique triangles. The cleaned 2048 packing target produced a valid
 atlas with roughly 52% covered texels and no overlaps at the checked resolution.
 TexUtil's working-coordinate normalization avoids xatlas dropping tiny faces.
 
-The OBJ's bottle is upside down relative to the usual Y-up presentation, so the
-preview rotates it 180 degrees around Z. This is presentation only. All material
-maps refer to the exact exported `bottle-final-atlas.obj` UVs.
+The bottle uses the usual Y-up presentation. Older previews incorrectly flipped
+readback rows and compensated with a 180-degree roll; current recipes use zero
+roll with corrected readback. All maps refer to the exact exported
+`bottle-final-atlas.obj` UVs.
 
 ## Material choices and map use
 
@@ -116,3 +117,19 @@ The render statistics list source graphs, slot names, projection, approximation
 warnings and exported asset files. Copy each material directory with its PNGs.
 The original OBJ has no material assignments; use the prepared OBJ's named slots
 when assigning these materials in Maya or another DCC.
+
+## Bake the material results into UV textures
+
+After model preparation and geometry baking:
+
+```sh
+./build/texutil samples/models/bottle/export-bake.json --out out/bottle/baked --threads 8 --json
+./build/texutil samples/models/bottle/baked-preview.json --out out/bottle/baked-preview --threads 8 --json
+```
+
+ExportBake runs on the CPU and produces per-slot PNGs, MaterialX and reusable
+`material.json` recipes under `out/bottle/baked/manifest.assets/`. The original
+prepared model is retained; the preview uses UV sampling for every baked material.
+Optical constants and texture-bound transmission tint are preserved. The preview
+keeps the hybrid refraction approximation. See [ExportBake](../../../docs/EXPORT_BAKE.md)
+for encoding, tangent basis, padding, memory and portability limits.

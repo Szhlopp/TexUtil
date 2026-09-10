@@ -1,0 +1,144 @@
+{
+  "size": 1024,
+  "nodes": {},
+  "outputs": {
+    "studio.png": {
+      "type": "preview",
+      "model": "../../../out/bottle/bottle-final-atlas.obj",
+      "materials": {
+        "#1": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/1/material.json",
+          "projection": "uv",
+          "thickness": 0.035
+        },
+        "#2": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/2/material.json",
+          "projection": "uv",
+          "refraction": "cubemap",
+          "thickness": 0.65
+        },
+        "#3": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/3/material.json",
+          "projection": "uv",
+          "refraction": "cubemap",
+          "thickness": 0.01
+        },
+        "#4": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/4/material.json",
+          "projection": "uv",
+          "thickness": 0.1
+        },
+        "#5": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/5/material.json",
+          "projection": "uv",
+          "thickness": 0.1
+        },
+        "#6": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/6/material.json",
+          "projection": "uv",
+          "thickness": 0.1
+        },
+        "#7": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/7/material.json",
+          "projection": "uv",
+          "refraction": "cubemap",
+          "thickness": 0.08
+        }
+      },
+      "environment": "studio",
+      "views": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          5,
+          65,
+          0
+        ],
+        [
+          12,
+          -45,
+          0
+        ]
+      ],
+      "size": 640,
+      "environment_rotation": 25,
+      "background": "#252c32",
+      "exposure": 0.3,
+      "render_order": "center_out"
+    },
+    "outdoor.png": {
+      "type": "preview",
+      "model": "../../../out/bottle/bottle-final-atlas.obj",
+      "materials": {
+        "#1": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/1/material.json",
+          "projection": "uv",
+          "thickness": 0.035
+        },
+        "#2": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/2/material.json",
+          "projection": "uv",
+          "refraction": "cubemap",
+          "thickness": 0.65
+        },
+        "#3": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/3/material.json",
+          "projection": "uv",
+          "refraction": "cubemap",
+          "thickness": 0.01
+        },
+        "#4": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/4/material.json",
+          "projection": "uv",
+          "thickness": 0.1
+        },
+        "#5": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/5/material.json",
+          "projection": "uv",
+          "thickness": 0.1
+        },
+        "#6": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/6/material.json",
+          "projection": "uv",
+          "thickness": 0.1
+        },
+        "#7": {
+          "culling": "back",
+          "graph": "../../../out/bottle/baked/manifest.assets/7/material.json",
+          "projection": "uv",
+          "refraction": "cubemap",
+          "thickness": 0.08
+        }
+      },
+      "environment": "outdoor",
+      "views": [
+        [
+          5,
+          25,
+          0
+        ]
+      ],
+      "size": 768,
+      "environment_rotation": -30,
+      "background": "#252c32",
+      "exposure": 0,
+      "render_order": "center_out"
+    }
+  }
+}

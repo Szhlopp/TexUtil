@@ -1,0 +1,51 @@
+{
+  "nodes": {},
+  "outputs": {
+    "original.png": {
+      "type": "preview",
+      "model": "../../assets/models/preview-torus.obj",
+      "materials": {
+        "body": {
+          "graph": "../cork.json",
+          "material": "cork.mtlx",
+          "projection": "triplanar",
+          "projection_scale": 2
+        },
+        "band": {
+          "graph": "../wood.json",
+          "material": "wood.mtlx",
+          "projection": "triplanar",
+          "projection_scale": 2
+        }
+      },
+      "environment": "studio",
+      "rotation": [
+        35,
+        45,
+        0
+      ],
+      "size": 768
+    },
+    "baked.png": {
+      "environment": "studio",
+      "materials": {
+        "#1": {
+          "graph": "../../out/export-bake/manifest.assets/1/material.json",
+          "projection": "uv"
+        },
+        "#2": {
+          "graph": "../../out/export-bake/manifest.assets/2/material.json",
+          "projection": "uv"
+        }
+      },
+      "model": "../../assets/models/preview-torus.obj",
+      "size": 768,
+      "type": "preview",
+      "rotation": [
+        35,
+        45,
+        0
+      ]
+    }
+  }
+}

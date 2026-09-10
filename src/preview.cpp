@@ -245,12 +245,14 @@ ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const 
     auto* normalTexture=texture(gpu,normal->width,normal->height,normal->pixels.data());gpu.instance->setParameter("normalMap",normalTexture,TextureSampler(TextureSampler::MinFilter::LINEAR_MIPMAP_LINEAR,TextureSampler::MagFilter::LINEAR,repeat?TextureSampler::WrapMode::REPEAT:TextureSampler::WrapMode::CLAMP_TO_EDGE));normal.reset();
     }
     struct GpuVertex { fm::float3 position;fm::quatf tangent;fm::float2 uv; };
-    std::vector<fm::float3> positions,normals;std::vector<fm::float2> uvs,tangentUvs;std::vector<fm::uint3> triangles;auto center=(mesh.minimum+mesh.maximum)*.5f;float factor=2/model::length(mesh.maximum-mesh.minimum);
+    std::vector<fm::float3> positions,normals;std::vector<fm::float2> uvs;std::vector<fm::uint3> triangles;auto center=(mesh.minimum+mesh.maximum)*.5f;float factor=2/model::length(mesh.maximum-mesh.minimum);
     for(size_t i=0;i<prepared.size();++i)gpu.instances[i]->setParameter("projectionScale",prepared[i].settings.at("projection_scale").get<float>()/factor);
-    for(auto v:mesh.vertices){auto p=(v.position-center)*factor;positions.push_back({p.x,p.y,p.z});normals.push_back({v.normal.x,v.normal.y,v.normal.z});tangentUvs.push_back({v.uv.x,v.uv.y});uvs.push_back(uvFrame?fm::float2{v.uv.x,1-v.uv.y}:fm::float2{0});}
+    // Filament flipUV converts mesh V to top-down image V once, inside the vertex shader.
+    // Tangent generation must retain the original mesh UV orientation.
+    for(auto v:mesh.vertices){auto p=(v.position-center)*factor;positions.push_back({p.x,p.y,p.z});normals.push_back({v.normal.x,v.normal.y,v.normal.z});uvs.push_back(uvFrame?fm::float2{v.uv.x,v.uv.y}:fm::float2{0});}
     std::vector<size_t> offsets,counts;for(const auto& item:prepared){offsets.push_back(triangles.size()*3);for(auto t:mesh.triangles)if(t.material==item.slot)triangles.push_back({t.vertices[0],t.vertices[1],t.vertices[2]});counts.push_back(triangles.size()*3-offsets.back());}
     geometry::SurfaceOrientation::Builder orientationBuilder;orientationBuilder.vertexCount(positions.size()).normals(normals.data());
-    if(uvFrame)orientationBuilder.positions(positions.data()).uvs(tangentUvs.data()).triangleCount(triangles.size()).triangles(triangles.data());
+    if(uvFrame)orientationBuilder.positions(positions.data()).uvs(uvs.data()).triangleCount(triangles.size()).triangles(triangles.data());
     std::unique_ptr<geometry::SurfaceOrientation> orientation(orientationBuilder.build());require(bool(orientation),"cannot generate mesh tangent frames");
     std::vector<fm::quatf> tangents(positions.size());orientation->getQuats(tangents.data(),tangents.size());std::vector<GpuVertex> vertices;for(size_t i=0;i<positions.size();++i)vertices.push_back({positions[i],tangents[i],uvs[i]});
     gpu.vb=VertexBuffer::Builder().vertexCount(uint32_t(vertices.size())).bufferCount(1).attribute(VertexAttribute::POSITION,0,VertexBuffer::AttributeType::FLOAT3,offsetof(GpuVertex,position),sizeof(GpuVertex)).attribute(VertexAttribute::TANGENTS,0,VertexBuffer::AttributeType::FLOAT4,offsetof(GpuVertex,tangent),sizeof(GpuVertex)).attribute(VertexAttribute::UV0,0,VertexBuffer::AttributeType::FLOAT2,offsetof(GpuVertex,uv),sizeof(GpuVertex)).build(engine);
@@ -274,7 +276,8 @@ ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const 
     Workers workers(1);
     for(size_t i=0;i<views.size();++i){const auto& v=views[i];auto& tm=engine.getTransformManager();auto rotation=fm::mat4f::rotation(v[2].get<float>()*.01745329252f,fm::float3{0,0,1})*fm::mat4f::rotation(v[1].get<float>()*.01745329252f,fm::float3{0,1,0})*fm::mat4f::rotation(v[0].get<float>()*.01745329252f,fm::float3{1,0,0});for(auto entity:gpu.meshEntities)tm.setTransform(tm.getInstance(entity),rotation);for(auto* materialInstance:gpu.instances)materialInstance->setParameter("objectRotation",fm::mat3f(rotation[0].xyz,rotation[1].xyz,rotation[2].xyz));
         std::vector<uint8_t> pixels(size_t(size)*size*4);for(int frame=0;frame<3;++frame){require(gpu.renderer->beginFrame(gpu.swap),"cannot begin preview frame");gpu.renderer->render(gpu.view);if(frame==2)gpu.renderer->readPixels(0,0,size,size,backend::PixelBufferDescriptor(pixels.data(),pixels.size(),backend::PixelDataFormat::RGBA,backend::PixelDataType::UBYTE));gpu.renderer->endFrame();engine.flushAndWait();}
-        auto view=std::make_shared<Image>(size,size,Kind::Color,memory);for(int y=0;y<size;++y)for(int x=0;x<size;++x){size_t ix=(size_t(size-1-y)*size+x)*4;view->set(x,y,{toLinear(pixels[ix]/255.f),toLinear(pixels[ix+1]/255.f),toLinear(pixels[ix+2]/255.f),1});}
+        // Filament readPixels returns top-down rows, already matching our image layout.
+        auto view=std::make_shared<Image>(size,size,Kind::Color,memory);for(int y=0;y<size;++y)for(int x=0;x<size;++x){size_t ix=(size_t(y)*size+x)*4;view->set(x,y,{toLinear(pixels[ix]/255.f),toLinear(pixels[ix+1]/255.f),toLinear(pixels[ix+2]/255.f),1});}
         if(views.size()>1)drawSheetItem(*result,sheet,i,*view,workers);else result=view;
     }
     if(report)*report=std::move(feedback);

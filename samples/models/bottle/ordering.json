@@ -57,7 +57,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true
     },
@@ -116,7 +116,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true,
       "render_order": "center_out"
@@ -176,7 +176,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true,
       "render_order": "outside_in"
@@ -238,7 +238,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true
     },
@@ -299,7 +299,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true
     },
@@ -360,7 +360,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true
     },
@@ -426,7 +426,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true
     },
@@ -488,7 +488,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true
     },
@@ -557,7 +557,7 @@
       "rotation": [
         5,
         25,
-        180
+        0
       ],
       "show_environment": true
     }

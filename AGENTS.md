@@ -547,6 +547,7 @@ the selected projection. **Use UV projection for baked atlas masks.** Mixing tho
 UV masks with triplanar detail within one material is not currently supported.
 Triplanar repeats textures but does not make them seamless. It neither changes UVs
 nor authors a triplanar MaterialX network. These options may be overridden per binding.
+Use the separate `export_bake` output below when UV textures are needed.
 
 ### Glass, liquid and nested refraction
 
@@ -632,6 +633,66 @@ also inspect another HDR environment for reflective/transmissive materials.
 Build an image-node sheet in a later invocation when comparing saved preview PNGs.
 No preview PNG may feed its own material. Keep optical claims proportionate to
 what was tested and use a suitable path tracer for final nested-volume evaluation.
+
+## Bake material results into model UVs
+
+Use `type:"export_bake"` for color, roughness, metalness, height and tangent normals.
+This CPU output is distinct from `model bake` geometry maps and needs no GPU. Read
+[ExportBake](docs/EXPORT_BAKE.md) for the full schema and limits.
+
+```sh
+./build/texutil samples/models/export-bake.json --out out/export-bake --threads 8 --json
+./build/texutil out/export-bake/manifest.assets/preview.json --out out/export-bake/preview
+```
+
+Only the preview command needs Filament. For the prepared bottle, use
+`samples/models/bottle/export-bake.json --out out/bottle/baked`, then
+`samples/models/bottle/baked-preview.json --out out/bottle/baked-preview`. These
+require the original prepared bottle and geometry bakes described above.
+
+- Output names end in `.json`, usually `manifest.json`; generated textures and
+  recipes go in the adjacent `<manifest-stem>.assets/<slot>/` directories.
+- Require unique non-overlapping 0..1 UVs. The baker does not unwrap, copy, displace
+  or modify the mesh. Unwrapping invalidates previous UV textures and masks.
+- Bind exact material names or `#index` slots to external recipe JSONs, with an
+  optional MaterialX output selector. A default `material` covers remaining slots.
+  ExportBake does not accept local parent MaterialX outputs or arbitrary disk MTLX.
+- Set bake `size:32..4096`, `padding:0..64`, and `normal_convention`. Defaults are
+  1024, 8, and `directx`. CLI `--size` does not change bake resolution or external
+  recipe sizes. Each external recipe retains its seed and imports.
+- UV and triplanar projection use the same controls as previews. Source atlas masks
+  must use UV projection; do not reinterpret them as triplanar detail.
+- Explicit per-binding `height` names a scalar PNG output of the recipe. Otherwise
+  displacement supplies height, or it falls back to midlevel 0.5 with
+  `source_present:false`. Height is not inferred from normals. Preserve or specify
+  `height_scale` and `height_midlevel`; explicit height alone does not turn on
+  displacement. These units remain a material-authoring responsibility.
+- Base color is 8-bit sRGB; scalar channels and normals are 16-bit raw PNGs. Values
+  clamp to 0..1. Source images are evaluated as float buffers before bilinear
+  projection sampling. Supersampling/anisotropic footprint filtering is not present.
+- Normal strength and DirectX/OpenGL conversion are applied once. Triplanar normals
+  are converted to the target UV tangent frame; exported helper scale is 1. The
+  CPU basis uses Lengyel tangents like the preview, not MikkTSpace. Check the target
+  DCC's normal shading, especially mirrored UVs and seams.
+- Preserve separate material slots and optical constants. Extra texture-bound
+  scalar/color inputs, including transmission tint, are also projected to UV maps
+  so exported materials remain connected. Reflections/refraction appearance and
+  lighting are not baked; hybrid preview limitations still apply.
+- Each material receives a separate full-atlas texture set with independent
+  padding. Exported `material.json` recipes can be reused through preview bindings.
+  Copy each MaterialX with its PNGs, keep the original mesh/UVs/slot order, and
+  update the generated preview's absolute model path when moving the package.
+- Inspect the manifest's files, encodings, height metadata and memory estimate.
+  Validate by rendering original and baked materials under matched camera/light
+  settings. Pixel differences from filtering and finite atlas resolution are
+  expected; missing parts or reversed atlas placement are defects.
+
+The preview explicitly lets Filament flip image V once while generating tangents
+from original mesh UVs. Do not add another V or normal-green flip to compensate
+for old renders. The optional GPU test documented in EXPORT_BAKE.md checks this
+with an asymmetric color atlas. Readback rows are already top-down; do not flip
+the rendered frame. Bottle recipes now use zero roll, removing the old 180-degree
+compensation for upside-down readback.
 
 ## Tiling, performance and delivery checks
 
