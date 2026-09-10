@@ -1,4 +1,5 @@
 #include "texutil/model.hpp"
+#include "texutil/material_recipe.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <set>
@@ -49,32 +50,14 @@ bool filamentAvailable() {
     return false;
 #endif
 }
-namespace {
-Json previewBinding(Json value, const std::filesystem::path& base) {
-    if(value.is_string()){auto path=value.get<std::string>();value=std::filesystem::path(path).extension()==".json"?Json{{"graph",path}}:Json{{"material",path}};}
-    fields(value,{"graph","material","projection","projection_scale","projection_blend","thickness","refraction","render_order","render_channel","culling"});
-    require(value.contains("graph")||value.contains("material"),"binding requires graph or material");
-    if(value.contains("material"))require(value["material"].is_string()&&!value["material"].get<std::string>().empty(),"binding material must be an output filename");
-    if(value.contains("graph")){require(value["graph"].is_string(),"graph must be a JSON filename");auto path=std::filesystem::absolute(base/value["graph"].get<std::string>()).lexically_normal();require(std::filesystem::is_regular_file(path),"material graph does not exist: "+path.string());value["graph"]=path.string();}
-    if(value.contains("refraction"))require(value["refraction"]=="auto"||value["refraction"]=="opaque"||value["refraction"]=="cubemap","refraction must be auto, opaque or cubemap");
-    if(value.contains("render_order"))integer(value["render_order"],0,7,"render_order");
-    if(value.contains("render_channel"))integer(value["render_channel"],2,7,"render_channel");
-    if(value.contains("culling"))require(value["culling"]=="none"||value["culling"]=="back"||value["culling"]=="front","culling must be none, back or front");
-    if(value.contains("projection"))require(value["projection"]=="uv"||value["projection"]=="triplanar","binding projection must be uv or triplanar");
-    if(value.contains("projection_scale"))number(value["projection_scale"],.0001f,10000,"projection_scale");
-    if(value.contains("projection_blend"))number(value["projection_blend"],1,16,"projection_blend");
-    if(value.contains("thickness"))number(value["thickness"],0,10,"thickness");
-    return value;
-}
-}
 Json parsePreview(const Json& input, const std::filesystem::path& base) {
     fields(input,{"type","material","materials","model","environment","rotation","views","size","columns","exposure","intensity","environment_rotation","background","show_environment","thickness","projection","projection_scale","projection_blend","render_order"});
     require(filamentAvailable(),"Filament is not enabled; configure with TEXUTIL_FILAMENT_ROOT (docs/MODELS.md)");
     Json result=input;
     require(result.contains("model")&&result["model"].is_string(),"model is required");
     require(result.contains("material")||result.contains("materials"),"material or materials is required");
-    if(result.contains("material"))result["material"]=previewBinding(result["material"],base);
-    if(result.contains("materials")){require(result["materials"].is_object()&&!result["materials"].empty()&&result["materials"].size()<=64,"materials needs 1..64 named bindings");for(auto& binding:result["materials"].items())binding.value()=previewBinding(binding.value(),base);}
+    if(result.contains("material"))result["material"]=parseMaterialBinding(result["material"],base);
+    if(result.contains("materials")){require(result["materials"].is_object()&&!result["materials"].empty()&&result["materials"].size()<=64,"materials needs 1..64 named bindings");for(auto& binding:result["materials"].items())binding.value()=parseMaterialBinding(binding.value(),base);}
     result["model"]=std::filesystem::absolute(base/result["model"].get<std::string>()).lexically_normal().string();require(std::filesystem::is_regular_file(result["model"].get<std::string>()),"model file does not exist");
     auto environment=result.value("environment",Json("studio"));require(environment.is_string(),"environment must be studio, outdoor, or an HDR filename");
     std::string env=environment.get<std::string>();auto path=(env=="studio"||env=="outdoor")?assetPath(env):std::filesystem::absolute(base/env).lexically_normal();
@@ -216,13 +199,9 @@ ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const 
         require(local.at("projection")=="triplanar"||uvFrame,"UV binding requires usable UVs; run model uv or choose triplanar");
         Json material;auto folder=outputDirectory;
         if(binding.contains("graph")){
-            auto path=std::filesystem::path(binding["graph"].get<std::string>());require(std::filesystem::file_size(path)<=8*1024*1024,"material graph exceeds 8 MiB");std::ifstream file(path);require(bool(file),"cannot read material graph");Json doc=Json::parse(file);
-            require(doc.contains("outputs")&&doc["outputs"].is_object(),"material graph needs outputs");std::string name=binding.value("material",std::string{});
-            if(name.empty()){for(auto it=doc["outputs"].begin();it!=doc["outputs"].end();++it)if(it.value().is_object()&&it.value().value("type",std::string{})=="materialx"){require(name.empty(),"graph has multiple MaterialX outputs; specify material: "+path.string());name=it.key();}}
-            require(!name.empty()&&doc["outputs"].contains(name),"material graph has no selected MaterialX output");material=parseMaterialX(doc["outputs"][name]);
-            std::set<std::string> textures;std::function<void(const Json&)> collect=[&](const Json& v){if(v.is_object()){if(v.contains("texture")&&v["texture"].is_string())textures.insert(v["texture"].get<std::string>());for(const auto& child:v)collect(child);}else if(v.is_array())for(const auto& child:v)collect(child);};collect(material);
-            Json exports={{name,doc["outputs"][name]}};local["texture_srgb"]=Json::object();for(const auto& texture:textures){require(doc["outputs"].contains(texture),"material texture output is missing: "+texture);exports[texture]=doc["outputs"][texture];auto o=exports[texture];require(!o.is_object()||o.value("type",std::string("image"))=="image","material texture must reference an image output");local["texture_srgb"][texture]=o.is_object()?o.value("srgb",doc.value("srgb",true)):doc.value("srgb",true);}
-            doc["outputs"]=exports;local["repeat"]=doc.value("tile",false);Options options;options.threads=settings.value("threads",0u);options.memoryMb=std::max<size_t>(1,(memory->limit-memory->current)/(1024*1024));folder=settings.at("asset_directory").get<std::string>();folder/=std::to_string(slot);options.out=folder;for(auto it=exports.begin();it!=exports.end();++it)require(std::filesystem::weakly_canonical(folder/it.key())!=std::filesystem::weakly_canonical(path),"material export would overwrite its recipe");
+            auto recipe=loadMaterialRecipe(binding);auto doc=recipe.document;material=recipe.material;auto name=recipe.name;auto path=std::filesystem::path(binding["graph"].get<std::string>());
+            local["texture_srgb"]=Json::object();for(auto it=doc["outputs"].begin();it!=doc["outputs"].end();++it)if(it.key()!=name){auto o=it.value();local["texture_srgb"][it.key()]=o.is_object()?o.value("srgb",doc.value("srgb",true)):doc.value("srgb",true);}
+            local["repeat"]=doc.value("tile",false);Options options;options.threads=settings.value("threads",0u);options.memoryMb=std::max<size_t>(1,(memory->limit-memory->current)/(1024*1024));folder=settings.at("asset_directory").get<std::string>();folder/=std::to_string(slot);options.out=folder;for(auto it=doc["outputs"].begin();it!=doc["outputs"].end();++it)require(std::filesystem::weakly_canonical(folder/it.key())!=std::filesystem::weakly_canonical(path),"material export would overwrite its recipe");
             auto rendered=Graph(doc,path.parent_path(),options).render();for(const auto& file:rendered["files"])feedback["files"].push_back(file);
             Output materialOutput;materialOutput.name=name;materialOutput.material=material;Output previewOutput;previewOutput.preview=Json{{"material",{{"material",name}}}};std::vector<Output> checkOutputs={materialOutput,previewOutput};validatePreviewReferences(checkOutputs);for(const auto& warning:checkOutputs.back().preview->at("warnings")){feedback["warnings"].push_back(key+": "+warning.get<std::string>());std::fprintf(stderr,"preview warning (%s): %s\n",key.c_str(),warning.get<std::string>().c_str());}
         }else{auto name=binding.at("material").get<std::string>();require(materialOutputs.contains(name),"unknown material output: "+name);material=materialOutputs[name];}
@@ -266,12 +245,12 @@ ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const 
     auto* normalTexture=texture(gpu,normal->width,normal->height,normal->pixels.data());gpu.instance->setParameter("normalMap",normalTexture,TextureSampler(TextureSampler::MinFilter::LINEAR_MIPMAP_LINEAR,TextureSampler::MagFilter::LINEAR,repeat?TextureSampler::WrapMode::REPEAT:TextureSampler::WrapMode::CLAMP_TO_EDGE));normal.reset();
     }
     struct GpuVertex { fm::float3 position;fm::quatf tangent;fm::float2 uv; };
-    std::vector<fm::float3> positions,normals;std::vector<fm::float2> uvs;std::vector<fm::uint3> triangles;auto center=(mesh.minimum+mesh.maximum)*.5f;float factor=2/model::length(mesh.maximum-mesh.minimum);
+    std::vector<fm::float3> positions,normals;std::vector<fm::float2> uvs,tangentUvs;std::vector<fm::uint3> triangles;auto center=(mesh.minimum+mesh.maximum)*.5f;float factor=2/model::length(mesh.maximum-mesh.minimum);
     for(size_t i=0;i<prepared.size();++i)gpu.instances[i]->setParameter("projectionScale",prepared[i].settings.at("projection_scale").get<float>()/factor);
-    for(auto v:mesh.vertices){auto p=(v.position-center)*factor;positions.push_back({p.x,p.y,p.z});normals.push_back({v.normal.x,v.normal.y,v.normal.z});uvs.push_back(uvFrame?fm::float2{v.uv.x,1-v.uv.y}:fm::float2{0});}
+    for(auto v:mesh.vertices){auto p=(v.position-center)*factor;positions.push_back({p.x,p.y,p.z});normals.push_back({v.normal.x,v.normal.y,v.normal.z});tangentUvs.push_back({v.uv.x,v.uv.y});uvs.push_back(uvFrame?fm::float2{v.uv.x,1-v.uv.y}:fm::float2{0});}
     std::vector<size_t> offsets,counts;for(const auto& item:prepared){offsets.push_back(triangles.size()*3);for(auto t:mesh.triangles)if(t.material==item.slot)triangles.push_back({t.vertices[0],t.vertices[1],t.vertices[2]});counts.push_back(triangles.size()*3-offsets.back());}
     geometry::SurfaceOrientation::Builder orientationBuilder;orientationBuilder.vertexCount(positions.size()).normals(normals.data());
-    if(uvFrame)orientationBuilder.positions(positions.data()).uvs(uvs.data()).triangleCount(triangles.size()).triangles(triangles.data());
+    if(uvFrame)orientationBuilder.positions(positions.data()).uvs(tangentUvs.data()).triangleCount(triangles.size()).triangles(triangles.data());
     std::unique_ptr<geometry::SurfaceOrientation> orientation(orientationBuilder.build());require(bool(orientation),"cannot generate mesh tangent frames");
     std::vector<fm::quatf> tangents(positions.size());orientation->getQuats(tangents.data(),tangents.size());std::vector<GpuVertex> vertices;for(size_t i=0;i<positions.size();++i)vertices.push_back({positions[i],tangents[i],uvs[i]});
     gpu.vb=VertexBuffer::Builder().vertexCount(uint32_t(vertices.size())).bufferCount(1).attribute(VertexAttribute::POSITION,0,VertexBuffer::AttributeType::FLOAT3,offsetof(GpuVertex,position),sizeof(GpuVertex)).attribute(VertexAttribute::TANGENTS,0,VertexBuffer::AttributeType::FLOAT4,offsetof(GpuVertex,tangent),sizeof(GpuVertex)).attribute(VertexAttribute::UV0,0,VertexBuffer::AttributeType::FLOAT2,offsetof(GpuVertex,uv),sizeof(GpuVertex)).build(engine);
