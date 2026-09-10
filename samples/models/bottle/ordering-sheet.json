@@ -1,0 +1,69 @@
+{
+  "size": 512,
+  "nodes": {
+    "00-default": {
+      "op": "image",
+      "path": "../../../out/bottle/order-study/render/00-default.png",
+      "kind": "color"
+    },
+    "center_out": {
+      "op": "image",
+      "path": "../../../out/bottle/order-study/render/center_out.png",
+      "kind": "color"
+    },
+    "liquid-first": {
+      "op": "image",
+      "path": "../../../out/bottle/order-study/render/liquid-first.png",
+      "kind": "color"
+    },
+    "glass-later-channel": {
+      "op": "image",
+      "path": "../../../out/bottle/order-study/render/glass-later-channel.png",
+      "kind": "color"
+    },
+    "hybrid": {
+      "op": "image",
+      "path": "../../../out/bottle/order-study/render/hybrid.png",
+      "kind": "color"
+    },
+    "hybrid-cull": {
+      "op": "image",
+      "path": "../../../out/bottle/order-study/render/hybrid-cull.png",
+      "kind": "color"
+    }
+  },
+  "outputs": {
+    "comparison.png": {
+      "type": "sheet",
+      "title": "FILAMENT / ORDER AND REFRACTION TESTS",
+      "columns": 3,
+      "cell": 384,
+      "items": [
+        {
+          "node": "00-default",
+          "label": "Default / liquid disappears"
+        },
+        {
+          "node": "center_out",
+          "label": "Center outward / unchanged"
+        },
+        {
+          "node": "liquid-first",
+          "label": "Liquid first / unchanged"
+        },
+        {
+          "node": "glass-later-channel",
+          "label": "Later glass channel / unchanged"
+        },
+        {
+          "node": "hybrid",
+          "label": "Cubemap liquid + screen glass"
+        },
+        {
+          "node": "hybrid-cull",
+          "label": "Hybrid + back-face culling"
+        }
+      ]
+    }
+  }
+}

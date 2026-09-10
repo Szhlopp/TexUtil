@@ -52,11 +52,14 @@ bool filamentAvailable() {
 namespace {
 Json previewBinding(Json value, const std::filesystem::path& base) {
     if(value.is_string()){auto path=value.get<std::string>();value=std::filesystem::path(path).extension()==".json"?Json{{"graph",path}}:Json{{"material",path}};}
-    fields(value,{"graph","material","projection","projection_scale","projection_blend","thickness","refraction"});
+    fields(value,{"graph","material","projection","projection_scale","projection_blend","thickness","refraction","render_order","render_channel","culling"});
     require(value.contains("graph")||value.contains("material"),"binding requires graph or material");
     if(value.contains("material"))require(value["material"].is_string()&&!value["material"].get<std::string>().empty(),"binding material must be an output filename");
     if(value.contains("graph")){require(value["graph"].is_string(),"graph must be a JSON filename");auto path=std::filesystem::absolute(base/value["graph"].get<std::string>()).lexically_normal();require(std::filesystem::is_regular_file(path),"material graph does not exist: "+path.string());value["graph"]=path.string();}
-    if(value.contains("refraction"))require(value["refraction"]=="auto"||value["refraction"]=="opaque","refraction must be auto or opaque");
+    if(value.contains("refraction"))require(value["refraction"]=="auto"||value["refraction"]=="opaque"||value["refraction"]=="cubemap","refraction must be auto, opaque or cubemap");
+    if(value.contains("render_order"))integer(value["render_order"],0,7,"render_order");
+    if(value.contains("render_channel"))integer(value["render_channel"],2,7,"render_channel");
+    if(value.contains("culling"))require(value["culling"]=="none"||value["culling"]=="back"||value["culling"]=="front","culling must be none, back or front");
     if(value.contains("projection"))require(value["projection"]=="uv"||value["projection"]=="triplanar","binding projection must be uv or triplanar");
     if(value.contains("projection_scale"))number(value["projection_scale"],.0001f,10000,"projection_scale");
     if(value.contains("projection_blend"))number(value["projection_blend"],1,16,"projection_blend");
@@ -65,7 +68,7 @@ Json previewBinding(Json value, const std::filesystem::path& base) {
 }
 }
 Json parsePreview(const Json& input, const std::filesystem::path& base) {
-    fields(input,{"type","material","materials","model","environment","rotation","views","size","columns","exposure","intensity","environment_rotation","background","show_environment","thickness","projection","projection_scale","projection_blend"});
+    fields(input,{"type","material","materials","model","environment","rotation","views","size","columns","exposure","intensity","environment_rotation","background","show_environment","thickness","projection","projection_scale","projection_blend","render_order"});
     require(filamentAvailable(),"Filament is not enabled; configure with TEXUTIL_FILAMENT_ROOT (docs/MODELS.md)");
     Json result=input;
     require(result.contains("model")&&result["model"].is_string(),"model is required");
@@ -76,6 +79,7 @@ Json parsePreview(const Json& input, const std::filesystem::path& base) {
     auto environment=result.value("environment",Json("studio"));require(environment.is_string(),"environment must be studio, outdoor, or an HDR filename");
     std::string env=environment.get<std::string>();auto path=(env=="studio"||env=="outdoor")?assetPath(env):std::filesystem::absolute(base/env).lexically_normal();
     require(std::filesystem::is_regular_file(path),"HDR environment does not exist");require(path.extension()==".hdr","custom environment must be a Radiance .hdr image");result["environment"]=path.string();
+    result["render_order"]=result.value("render_order",Json("default"));require(result["render_order"]=="default"||result["render_order"]=="center_out"||result["render_order"]=="outside_in","render_order must be default, center_out or outside_in");
     result["size"]=integer(result.value("size",Json(512)),64,2048,"size");result["columns"]=integer(result.value("columns",Json(3)),1,8,"columns");
     result["exposure"]=number(result.value("exposure",Json(0)), -16,16,"exposure");result["intensity"]=number(result.value("intensity",Json(30000)),0,1000000,"intensity");
     result["environment_rotation"]=number(result.value("environment_rotation",Json(0)),-36000,36000,"environment_rotation");result["thickness"]=number(result.value("thickness",Json(.1)),0,10,"thickness");
@@ -147,6 +151,8 @@ extern "C" void* MTLCreateSystemDefaultDevice(void);
 #include "preview_solid.h"
 #include "preview_thin.h"
 #include "preview_opaque.h"
+#include "preview_cube_solid.h"
+#include "preview_cube_thin.h"
 
 namespace tex {
 namespace {
@@ -157,10 +163,10 @@ struct Gpu {
     filament::Material* material=nullptr;filament::MaterialInstance* instance=nullptr;filament::VertexBuffer* vb=nullptr;filament::IndexBuffer* ib=nullptr;
     filament::IndirectLight* light=nullptr;filament::Skybox* sky=nullptr;filament::ColorGrading* grading=nullptr;
     std::vector<filament::Material*> materials;std::vector<filament::MaterialInstance*> instances;
-    utils::Entity cameraEntity{},meshEntity{};std::vector<filament::Texture*> textures;
+    utils::Entity cameraEntity{};std::vector<utils::Entity> meshEntities;std::vector<filament::Texture*> textures;
     ~Gpu() {
         if(!engine)return;engine->flushAndWait();
-        if(view)engine->destroy(view);if(scene)engine->destroy(scene);if(meshEntity){engine->destroy(meshEntity);utils::EntityManager::get().destroy(meshEntity);}
+        if(view)engine->destroy(view);if(scene)engine->destroy(scene);for(auto entity:meshEntities){engine->destroy(entity);utils::EntityManager::get().destroy(entity);}
         if(cameraEntity){engine->destroyCameraComponent(cameraEntity);utils::EntityManager::get().destroy(cameraEntity);}
         for(auto* i:instances)engine->destroy(i);for(auto* m:materials)engine->destroy(m);if(vb)engine->destroy(vb);if(ib)engine->destroy(ib);
         if(light)engine->destroy(light);if(sky)engine->destroy(sky);if(grading)engine->destroy(grading);for(auto* t:textures)engine->destroy(t);
@@ -206,7 +212,7 @@ ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const 
     std::vector<Prepared> prepared;std::set<uint32_t> used;for(const auto& t:mesh.triangles)used.insert(t.material);
     std::set<std::string> matched;
     for(auto slot:used){Json binding;auto names=settings.value("materials",Json::object());auto key=mesh.materials.at(slot);if(names.contains(key)){binding=names[key];matched.insert(key);}else if(names.contains("#"+std::to_string(slot))){key="#"+std::to_string(slot);binding=names[key];matched.insert(key);}else {require(settings.contains("material"),"no binding for mesh material: "+key);binding=settings.at("material");}
-        Json local=settings;for(const char* field:{"projection","projection_scale","projection_blend","thickness","refraction"})if(binding.contains(field))local[field]=binding[field];
+        Json local=settings;for(const char* field:{"projection","projection_scale","projection_blend","thickness","refraction","render_order","render_channel","culling"})if(binding.contains(field))local[field]=binding[field];
         require(local.at("projection")=="triplanar"||uvFrame,"UV binding requires usable UVs; run model uv or choose triplanar");
         Json material;auto folder=outputDirectory;
         if(binding.contains("graph")){
@@ -222,6 +228,7 @@ ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const 
         }else{auto name=binding.at("material").get<std::string>();require(materialOutputs.contains(name),"unknown material output: "+name);material=materialOutputs[name];}
         feedback["materials"].push_back({{"slot",slot},{"name",mesh.materials[slot]},{"binding",binding},{"projection",local["projection"]},{"asset_directory",folder.string()},{"refraction",local.value("refraction",std::string("auto"))}});
         if(local.value("refraction",std::string("auto"))=="opaque"&&material["inputs"].contains("transmission")){auto warning=key+": preview disables transmission; exported MaterialX remains unchanged";feedback["warnings"].push_back(warning);std::fprintf(stderr,"preview warning: %s\n",warning.c_str());}
+        if(local.value("refraction",std::string("auto"))=="cubemap"&&material["inputs"].contains("transmission")){auto warning=key+": cubemap transmission refracts the HDR environment only, not scene objects; exported MaterialX remains unchanged";feedback["warnings"].push_back(warning);std::fprintf(stderr,"preview warning: %s\n",warning.c_str());}
         prepared.push_back({material,local,folder,slot});
     }
     if(settings.contains("materials"))for(auto it=settings["materials"].begin();it!=settings["materials"].end();++it)require(matched.count(it.key()),"binding does not match any used material slot: "+it.key());
@@ -242,7 +249,11 @@ ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const 
     for(const auto& item:prepared){const auto& material=item.material;const auto& settings=item.settings;const auto& outputDirectory=item.folder;bool triplanar=settings.at("projection")=="triplanar";
     auto inputs=material.at("inputs");bool thin=inputs.value("thin_walled",false);
     bool refractive=settings.value("refraction",std::string("auto"))!="opaque"&&inputs.contains("transmission")&&(inputs["transmission"].is_object()||inputs["transmission"].get<float>()>0);
-    gpu.material=Material::Builder().package(!refractive?preview_opaque:thin?preview_thin:preview_solid,!refractive?sizeof(preview_opaque):thin?sizeof(preview_thin):sizeof(preview_solid)).build(engine);require(gpu.material,"cannot create preview material");gpu.materials.push_back(gpu.material);gpu.instance=gpu.material->createInstance();gpu.instances.push_back(gpu.instance);
+    bool cubemap=settings.value("refraction",std::string("auto"))=="cubemap";
+    const auto* package=!refractive?preview_opaque:cubemap?(thin?preview_cube_thin:preview_cube_solid):(thin?preview_thin:preview_solid);
+    size_t packageSize=!refractive?sizeof(preview_opaque):cubemap?(thin?sizeof(preview_cube_thin):sizeof(preview_cube_solid)):(thin?sizeof(preview_thin):sizeof(preview_solid));
+    gpu.material=Material::Builder().package(package,packageSize).build(engine);require(gpu.material,"cannot create preview material");gpu.materials.push_back(gpu.material);gpu.instance=gpu.material->createInstance();gpu.instances.push_back(gpu.instance);
+    auto culling=settings.value("culling",std::string("none"));if(culling!="none"){gpu.instance->setDoubleSided(false);gpu.instance->setCullingMode(culling=="back"?backend::CullingMode::BACK:backend::CullingMode::FRONT);}
     bool repeat=triplanar||settings.value("repeat",true);
     gpu.instance->setParameter("triplanar",triplanar);gpu.instance->setParameter("projectionBlend",settings.at("projection_blend").get<float>());
     for(const auto& entry:std::vector<std::pair<std::string,std::string>>{{"base_color","colorMap"},{"specular_roughness","roughnessMap"},{"metalness","metalnessMap"},{"transmission","transmissionMap"},{"emission_color","emissionMap"},{"transmission_color","transmissionColorMap"}})bind(gpu,inputs,entry.first,entry.second,outputDirectory,memory,entry.first!="base_color"&&entry.first!="emission_color"&&entry.first!="transmission_color",{1,1,1,1},repeat,settings.at("texture_srgb"));
@@ -266,14 +277,23 @@ ImagePtr renderPreview(const Json& settings, const Json& materialOutputs, const 
     gpu.vb=VertexBuffer::Builder().vertexCount(uint32_t(vertices.size())).bufferCount(1).attribute(VertexAttribute::POSITION,0,VertexBuffer::AttributeType::FLOAT3,offsetof(GpuVertex,position),sizeof(GpuVertex)).attribute(VertexAttribute::TANGENTS,0,VertexBuffer::AttributeType::FLOAT4,offsetof(GpuVertex,tangent),sizeof(GpuVertex)).attribute(VertexAttribute::UV0,0,VertexBuffer::AttributeType::FLOAT2,offsetof(GpuVertex,uv),sizeof(GpuVertex)).build(engine);
     gpu.ib=IndexBuffer::Builder().indexCount(uint32_t(triangles.size()*3)).bufferType(IndexBuffer::IndexType::UINT).build(engine);
     gpu.vb->setBufferAt(engine,0,VertexBuffer::BufferDescriptor(vertices.data(),vertices.size()*sizeof(GpuVertex)));gpu.ib->setBuffer(engine,IndexBuffer::BufferDescriptor(triangles.data(),triangles.size()*sizeof(fm::uint3)));
-    gpu.meshEntity=utils::EntityManager::get().create();RenderableManager::Builder renderable(prepared.size());renderable.boundingBox({{0,0,0},{1,1,1}}).culling(false);
-    for(size_t i=0;i<prepared.size();++i)renderable.material(i,gpu.instances[i]).geometry(i,RenderableManager::PrimitiveType::TRIANGLES,gpu.vb,gpu.ib,offsets[i],counts[i]);
-    renderable.build(engine,gpu.meshEntity);gpu.scene->addEntity(gpu.meshEntity);
+    // Radius about the shared bounds center is a heuristic for concentric shells, not nesting detection.
+    std::vector<float> radii(prepared.size());std::vector<size_t> order;
+    for(size_t i=0;i<prepared.size();++i){order.push_back(i);for(auto t:mesh.triangles)if(t.material==prepared[i].slot)for(auto index:t.vertices)radii[i]=std::max(radii[i],model::length(mesh.vertices[index].position-center));}
+    auto ordering=settings.value("render_order",std::string("default"));
+    if(ordering!="default")std::stable_sort(order.begin(),order.end(),[&](size_t a,size_t b){return ordering=="center_out"?radii[a]<radii[b]:radii[a]>radii[b];});
+    for(size_t rank=0;rank<order.size();++rank){size_t i=order[rank];auto entity=utils::EntityManager::get().create();gpu.meshEntities.push_back(entity);
+        int priority=ordering=="default"?4:order.size()==1?0:int(rank*7/(order.size()-1));if(prepared[i].settings.contains("render_order")&&prepared[i].settings["render_order"].is_number_integer())priority=prepared[i].settings["render_order"].get<int>();
+        int channel=prepared[i].settings.value("render_channel",2);
+        RenderableManager::Builder renderable(1);renderable.boundingBox({{0,0,0},{1,1,1}}).culling(false).priority(uint8_t(priority)).channel(uint8_t(channel));
+        renderable.material(0,gpu.instances[i]).geometry(0,RenderableManager::PrimitiveType::TRIANGLES,gpu.vb,gpu.ib,offsets[i],counts[i]);renderable.build(engine,entity);gpu.scene->addEntity(entity);
+        feedback["materials"][i]["render_order"]=priority;feedback["materials"][i]["render_channel"]=channel;feedback["materials"][i]["radius"]=radii[i];feedback["materials"][i]["culling"]=prepared[i].settings.value("culling",std::string("none"));
+    }
     environment(gpu,settings);
     const auto& views=settings.at("views");Sheet sheet;ImagePtr result;
     if(views.size()>1){Json items=Json::array();for(const auto& v:views)items.push_back({{"node","view"},{"label","Rotation "+v.dump()}});sheet=parseSheet({{"items",items},{"columns",std::min(settings.at("columns").get<int>(),int(views.size()))},{"cell",size},{"title","Filament / HDR material preview"}});result=createSheet(sheet,memory);}
     Workers workers(1);
-    for(size_t i=0;i<views.size();++i){const auto& v=views[i];auto& tm=engine.getTransformManager();auto instance=tm.getInstance(gpu.meshEntity);auto rotation=fm::mat4f::rotation(v[2].get<float>()*.01745329252f,fm::float3{0,0,1})*fm::mat4f::rotation(v[1].get<float>()*.01745329252f,fm::float3{0,1,0})*fm::mat4f::rotation(v[0].get<float>()*.01745329252f,fm::float3{1,0,0});tm.setTransform(instance,rotation);for(auto* materialInstance:gpu.instances)materialInstance->setParameter("objectRotation",fm::mat3f(rotation[0].xyz,rotation[1].xyz,rotation[2].xyz));
+    for(size_t i=0;i<views.size();++i){const auto& v=views[i];auto& tm=engine.getTransformManager();auto rotation=fm::mat4f::rotation(v[2].get<float>()*.01745329252f,fm::float3{0,0,1})*fm::mat4f::rotation(v[1].get<float>()*.01745329252f,fm::float3{0,1,0})*fm::mat4f::rotation(v[0].get<float>()*.01745329252f,fm::float3{1,0,0});for(auto entity:gpu.meshEntities)tm.setTransform(tm.getInstance(entity),rotation);for(auto* materialInstance:gpu.instances)materialInstance->setParameter("objectRotation",fm::mat3f(rotation[0].xyz,rotation[1].xyz,rotation[2].xyz));
         std::vector<uint8_t> pixels(size_t(size)*size*4);for(int frame=0;frame<3;++frame){require(gpu.renderer->beginFrame(gpu.swap),"cannot begin preview frame");gpu.renderer->render(gpu.view);if(frame==2)gpu.renderer->readPixels(0,0,size,size,backend::PixelBufferDescriptor(pixels.data(),pixels.size(),backend::PixelDataFormat::RGBA,backend::PixelDataType::UBYTE));gpu.renderer->endFrame();engine.flushAndWait();}
         auto view=std::make_shared<Image>(size,size,Kind::Color,memory);for(int y=0;y<size;++y)for(int x=0;x<size;++x){size_t ix=(size_t(size-1-y)*size+x)*4;view->set(x,y,{toLinear(pixels[ix]/255.f),toLinear(pixels[ix+1]/255.f),toLinear(pixels[ix+2]/255.f),1});}
         if(views.size()>1)drawSheetItem(*result,sheet,i,*view,workers);else result=view;

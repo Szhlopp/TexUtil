@@ -172,6 +172,7 @@ Run the complete checked-in examples:
 | `background` | Opaque color, default `#24282d`. |
 | `show_environment` | Display HDR background, default false. |
 | `thickness` | Refraction thickness in the normalized preview scene, 0..10, default 0.1. |
+| `render_order` | `default`, `center_out`, or `outside_in`. Sort material parts by maximum vertex radius from the model's bounding-box center, then assign Filament priorities. |
 
 Triplanar samples three object-space planes and blends by the surface normal.
 The projection follows object rotation and does not require or modify UVs.
@@ -198,7 +199,7 @@ metalness, tangent normal, IOR, transmission/tint/depth, emission and clear coat
 Unsupported inputs and unapplied displacement are reported as preview warnings
 on stderr and in `--json` output details. This is not a full MaterialX shader
 interpreter or an Arnold reference render. Opaque, thin and solid surfaces use different
-Filament material packages; transmissive variants use screen-space refraction; neither performs path-traced internal scattering.
+Filament material packages; transmissive variants use screen-space or environment-cubemap refraction; neither performs path-traced internal scattering.
 Previews use HDR image-based diffuse/specular lighting, neutral PBR tone mapping
 and FXAA, and export opaque 8-bit sRGB PNGs. Other formats and render callbacks
 are unsupported for preview outputs. GPU allocations are outside `--memory`.
@@ -253,6 +254,34 @@ transmissive material. It is useful for inspecting dense liquid behind glass:
 screen-space refraction can see the opaque scene but cannot accurately resolve
 multiple nested transmissive layers. Exported MaterialX remains unchanged. Use a
 path tracer for final glass/liquid volume evaluation.
+
+`refraction: "cubemap"` keeps transmission, IOR and absorption active but refracts
+only the HDR environment. These materials render in Filament's color pass, so a
+later screen-space glass material can see their rendered appearance. This hybrid
+is useful for the bottle preview and does not force the liquid opaque. It cannot
+refract other scene objects or accurately reproduce light crossing nested liquid,
+bubbles and glass. The approximation is reported in preview warnings. It does not
+alter the exported MaterialX. Solid and thin-walled cubemap variants are supported.
+
+Each material slot has a separate renderable. The preview-level `render_order`
+uses a shared bounding-box center, not a preserved DCC pivot or a containment
+test. It maps ascending or descending radii to eight priority levels; more than
+eight parts share levels. This is a heuristic for roughly concentric shells.
+Per-binding integer `render_order: 0..7` overrides that priority (lower draws
+earlier within the same pass/channel). It is draw priority, not dielectric-medium
+priority for a path tracer. Sorting cannot refresh the refraction buffer.
+
+Additional per-binding diagnostic controls are `render_channel: 2..7` (default
+2, higher channels draw later) and `culling: "none" | "back" | "front"` (default
+`none`). Back/front culling disables double-sided shading for that material.
+Use back culling only with consistently oriented geometry. Changing channels
+does not create another refraction capture; prefer the default channel. Render
+JSON includes the effective priority, channel, radius in source units and culling.
+
+The bottle ordering study tested both radial orders, explicit liquid-first and
+glass-first priorities, a later glass channel and back-face culling. None restored
+the nested liquid with both layers using screen-space refraction. The hybrid
+cubemap-liquid/screen-space-glass preview did retain the green fill.
 
 See [multi-material torus](../samples/models/multi-material.json) for a self-contained
 example and [the bottle study](../samples/models/bottle/README.md) for real geometry
