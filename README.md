@@ -3,7 +3,9 @@
 Generate textures from small JSON graphs. C++17, CPU SIMD noise, parallel image
 operations, floating-point intermediates, and a command line designed for agents.
 
-![TexUtil samples: potion materials, forest erosion, snow, warped wood grain and cork](docs/images/texutil-samples.jpg)
+![TexUtil 3D workflow: UV preparation, geometry baking, material baking and HDR previews](docs/images/texutil-3d-workflow.png)
+
+![TexUtil material samples: a bottle before/after swipe, forest erosion, snow, birch, cork and procedural patterns](docs/images/texutil-samples-v2.png)
 
 Explore the [sample graphs](samples/README.md) to generate your own materials.
 
