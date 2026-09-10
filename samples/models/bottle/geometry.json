@@ -1,0 +1,41 @@
+{
+  "size": 1024,
+  "tile": false,
+  "imports": {
+    "mesh": "../../../out/bottle/bake/maps.json"
+  },
+  "nodes": {
+    "cavity": {
+      "op": "invert",
+      "input": "mesh.ao"
+    },
+    "cavity-soft": {
+      "op": "gaussian_blur",
+      "input": "cavity",
+      "sigma": 2,
+      "edge": "clamp"
+    },
+    "convex": {
+      "op": "levels",
+      "input": "mesh.curvature",
+      "in": [
+        0.52,
+        0.68
+      ]
+    },
+    "cavity-roughness": {
+      "op": "levels",
+      "input": "cavity-soft",
+      "out": [
+        0,
+        0.2
+      ]
+    }
+  },
+  "outputs": {
+    "ao.png": {
+      "node": "mesh.ao",
+      "bits": 16
+    }
+  }
+}

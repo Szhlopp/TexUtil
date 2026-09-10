@@ -37,7 +37,7 @@ that a similarly named TexUtil node has identical controls.
 | CLI option | Use |
 | --- | --- |
 | `--out DIR` | Write generated files here; use an `out/` subdirectory. Existing files are overwritten. |
-| `--size N` / `--size WxH` | Override all graph dimensions, including imports. |
+| `--size N` / `--size WxH` | Override texture graph dimensions, including imports. Preview view sizes are separate; external material recipes keep their own dimensions. |
 | `--seed N` | Override the root document seed; explicit node seeds and imported document seeds stay independent. |
 | `--threads N` | Choose 1..256 workers; default is CPU concurrency capped at 16. |
 | `--memory MB` | Live float-buffer budget in MiB; default 1024. This is not a total process memory cap. |
@@ -60,7 +60,8 @@ their last consumer. Presets expand into ordinary nodes before execution.
 Output keys are relative filenames. Values are node names or objects such as
 `{"node":"height","bits":16}`. Use PNG for exchange, usually 16-bit for height
 and subtle data maps; PFM preserves 32-bit linear float height, including values
-outside 0..1. Integer exports clamp to 0..1. PNG is the only input image format.
+outside 0..1. Integer exports clamp to 0..1. The `image` node imports PNG only;
+GPU preview environments separately accept Radiance `.hdr` files.
 
 For a labeled comparison, add a native sheet alongside the individual outputs:
 
@@ -126,7 +127,8 @@ PNGs. For a graph saved beside the sample files:
   filenames only; per-instance parameter overrides are not implemented. Add parent
   nodes to adjust results, or edit an appropriate source recipe.
 - Import libraries may omit `outputs`; parents may omit `nodes` if imports supply
-  them. A renderable parent still needs nonempty `outputs` and an expanded graph.
+  them. A renderable parent still needs nonempty `outputs`. Preview-only documents
+  may use `nodes:{}` when material bindings provide external recipes.
 - Cycles and namespace conflicts fail validation. Limits are 16 nested levels,
   128 import instances, 8 MiB per imported file, 32 MiB unique imported JSON total,
   and 4096 nodes after imports and presets. Outputs cannot overwrite imported assets.
@@ -455,6 +457,245 @@ all referenced PNGs together, preserving relative paths. See
 [MaterialX documentation](docs/MATERIALX.md) for displacement, transmission and
 other inputs. The exporter does not render a sphere; SDK validation and shader
 generation do not prove a host application renders the material correctly.
+
+## Model operations and GPU previews
+
+Read [model documentation](docs/MODELS.md) before authoring a preview. Static OBJ,
+FBX, glTF and GLB loading, xatlas UV unwrapping and geometry baking are CPU features.
+Animation and source shader networks are not rendered; export a static posed mesh.
+glTF/GLB triangle geometry must be uncompressed. Model limits are documented there.
+
+### Build and inspect first
+
+GPU previews require a Filament-enabled build, the matching 1.76.1 SDK/compiler,
+C++20 and a working GPU driver. Do not assume the ordinary CPU build has previews.
+Use the existing matching SDK when present; the setup helper refuses to overwrite it.
+For a fresh SDK on macOS/Linux, the setup and configure commands are:
+
+```sh
+python3 tools/setup_filament.py
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DTEXUTIL_FILAMENT_ROOT="$PWD/build/model-deps/filament"
+cmake --build build -j 8
+```
+
+Follow the Windows toolchain instructions in README and docs/MODELS.md. macOS uses
+Metal; Windows/Linux use Vulkan. Only macOS ARM64 previews have been GPU-tested.
+Shader packages are embedded at build time; runtime still needs the HDR assets.
+Installed assets are discovered relative to the executable, or through
+`TEXUTIL_HDRI_DIR`. GPU memory is outside the CPU `--memory` budget. A missing GPU
+or renderer is a capability failure, not evidence that a material is invalid.
+
+```sh
+./build/texutil model --help
+./build/texutil model check-uvs model.obj --size 1024 --json
+./build/texutil model uv model.obj --out out/model-uv.obj --size 1024 --padding 4 --json
+./build/texutil model bake out/model-uv.obj --out out/model-bake --maps curvature,ao,thickness,materialids,position,object_normal,coverage --size 1024 --samples 64 --threads 8 --json
+```
+
+Inspect material slots, bounds, normals and UV diagnostics before assigning
+recipes. `check-uvs` exits 1 for a mesh unsuitable for unique-atlas baking;
+`usable_for_preview` can still be true for repeated/overlapping UVs. Unwrap only
+when needed. It writes a new OBJ/MTL and refuses existing paths. New UVs invalidate
+old UV textures. Use the same prepared mesh for baking, material masks and preview.
+Source OBJ groups do not automatically become material slots.
+
+Bakes produce 16-bit linear PNGs, `maps.json` and `bake-info.json`; sizes are capped
+at 4096. `--distance` is in source mesh units. Thickness needs closed, outward-facing
+geometry and is normalized by the ray-distance limit, not a wall-thickness value
+ready to pass to the preview shader. Import `maps.json` through graph `imports`;
+its PNG paths resolve beside that JSON. Use AO/curvature to inform wear and deposits.
+`object_normal` is a geometry-space map, not a tangent-space material normal.
+
+### Assign separate material recipes to one model
+
+A `type:"preview"` output references `model` plus a `material` default binding,
+or a `materials` map covering every used material slot. Keys match exact source
+material names or zero-based `#index` values. Unknown keys and uncovered slots
+without a default are errors. These bindings differ from texture-graph `imports`:
+
+- `"glass": "glass.json"` selects an external recipe's only MaterialX output.
+- `"glass": {"graph":"glass.json","material":"glass.mtlx"}` selects a specific
+  output, required when the recipe has multiple MaterialX outputs.
+- `"glass": "glass.mtlx"` or `{"material":"glass.mtlx"}` selects a MaterialX
+  output in the current document. This does not load an arbitrary disk `.mtlx`.
+
+Graph/model/custom-HDR paths resolve relative to the declaring preview JSON.
+Each external graph keeps its own imports, size and tiling. Only its selected
+MaterialX and referenced PNG outputs execute, not unrelated sheets or previews.
+They are exported to `preview-materials/<preview-output>.assets/<slot>/` under
+`--out`. Copy each exported material with its PNGs. Preview-only roots can use
+`nodes:{}`. Validation checks binding syntax and file existence; external graph
+contents and actual mesh-slot matching are checked during rendering.
+
+### Lighting, projection and angles
+
+Choose `environment:"studio"`, `"outdoor"`, or a custom 2:1 Radiance `.hdr` path.
+`environment_rotation` changes the panorama yaw; `show_environment:true` displays
+it behind the model. Lighting still works with the default plain background.
+Use `exposure` in stops and `intensity` for lighting, keeping them fixed across
+material comparisons. Custom HDR widths must be 4..8192 pixels.
+
+Use either `rotation:[pitch,yaw,roll]` in degrees (X then Y then Z) or `views`
+with 1..12 angle triples. Multiple views make a labeled sheet, with `columns:1..8`.
+Preview `size:64..2048` is pixels per square view, independent of graph `--size`.
+Meshes are centered and uniformly scaled to fit the fixed camera.
+
+`projection:"uv"` uses the first UV set. `"triplanar"` works without UVs and follows
+object rotation; `projection_scale:0.0001..10000` means repeats per source mesh unit,
+and `projection_blend:1..16` controls axis transitions. All material textures use
+the selected projection. **Use UV projection for baked atlas masks.** Mixing those
+UV masks with triplanar detail within one material is not currently supported.
+Triplanar repeats textures but does not make them seamless. It neither changes UVs
+nor authors a triplanar MaterialX network. These options may be overridden per binding.
+Use the separate `export_bake` output below when UV textures are needed.
+
+### Glass, liquid and nested refraction
+
+For this bottle's quick preview, prefer the tested
+[hybrid recipe](samples/models/bottle/hybrid.json). **Hybrid refraction is opt-in.**
+TexUtil does not infer glass, liquid, nesting or dielectric priorities from a mesh.
+Keep physically meaningful transmission/IOR/tint inputs in each MaterialX recipe;
+the following are preview binding controls, not replacements for those inputs:
+
+| Binding `refraction` | Behavior |
+| --- | --- |
+| `auto` (default) | Opaque when transmission is absent/zero; otherwise screen-space refraction. Use this on the outer glass. |
+| `cubemap` | Retains transmission, IOR and absorption but refracts only the HDR environment. Use this on the inner liquid for the tested hybrid approach. |
+| `opaque` | Disables transmission in the preview. Retain only as an explicitly labeled diagnostic/layout approximation. |
+
+Cubemap liquid renders in the color pass, allowing the later screen-space glass
+to see it. It cannot correctly refract neighboring geometry, bubbles or the back
+of the bottle. Both cubemap and opaque overrides emit warnings and leave MaterialX
+exports unchanged. Do not describe hybrid output as physically accurate nested
+dielectrics or equivalent to Arnold. It was visually tested across studio angles
+and an outdoor HDR; the old `bottle.json` remains the opaque baseline.
+
+`thickness:0..10` (default 0.1) is a preview approximation in normalized scene
+units, not source mesh units or a baked thickness map. Transmission absorption
+also depends on `transmission_depth`; do not assume its numeric scale matches
+a DCC scene automatically. `thin_walled` selects a thin-surface approximation,
+not a universal fix for bottles. Solid and thin cubemap variants are supported.
+
+| Ordering / face control | Scope and behavior |
+| --- | --- |
+| `render_order:"default"`, `"center_out"`, `"outside_in"` | Preview-level mode. Radial modes rank each material part's maximum vertex distance from the shared bounding-box center into eight draw priorities. |
+| `render_order:0..7` | Per-binding explicit priority; lower draws earlier within the same channel/pass. Overrides radial priority. |
+| `render_channel:2..7` | Per-binding diagnostic channel, default 2. Higher channels draw later; normally leave the default. |
+| `culling:"none"`, `"back"`, `"front"` | Per-binding face culling, default `none`. Back/front disable double-sided shading; use back culling only with consistently oriented geometry. |
+
+Center-out is a heuristic, not actual containment detection or a preserved DCC
+pivot. More than eight parts share priority levels. These are draw-order controls,
+not dielectric-medium priorities. Filament 1.76.1 captures its screen-space
+refraction input once before the refractive draws; reordering them does not refresh
+that input. Both radial orders, explicit priorities, later glass channels and
+back-face culling were tested and did not restore the bottle's inner liquid when
+both layers used screen-space refraction. The hybrid refraction change did.
+
+### Reproduce and assess the result
+
+Start with self-contained `samples/models/preview.json`, `triplanar.json` or
+`multi-material.json` when no user model is available. The bottle model and its
+generated bakes are not bundled. If missing, prepare them once as below; the helper
+is specific to the supplied bottle's group names, not a general model repair tool.
+It removes exact duplicate faces, converts centimeters to meters, assigns slots
+and unwraps a new copy. Do not rerun preparation over existing prepared outputs.
+
+```sh
+python3 tools/prepare_bottle_example.py /path/to/Bottle.obj --texutil ./build/texutil
+./build/texutil model bake out/bottle/bottle-final-atlas.obj --out out/bottle/bake --size 1024 --samples 96 --threads 8 --distance 0.06 --padding 6
+./build/texutil samples/models/bottle/hybrid.json --out out/bottle/hybrid --threads 8 --json
+```
+
+For the optional map inspection sheets, `inspection.json` reads glass maps from
+the old baseline's `out/bottle/render/` directory. Generate those dependencies
+before running the sheet recipe:
+
+```sh
+./build/texutil samples/models/bottle/bottle.json --out out/bottle/render --threads 8 --json
+./build/texutil samples/models/bottle/inspection.json --out out/bottle/inspection
+```
+
+See the [bottle study](samples/models/bottle/README.md) for all dependencies.
+For a controlled ordering comparison, render before assembling the sheet:
+
+```sh
+./build/texutil samples/models/bottle/ordering.json --out out/bottle/order-study/render --threads 8 --json
+./build/texutil samples/models/bottle/ordering-sheet.json --out out/bottle/order-study
+```
+
+Read stderr and `--json` output details for approximation/unsupported-input
+warnings, source graphs, slots, projection, effective priorities, channels,
+radii and culling. Filament uses an approximation of Standard Surface, not a full
+MaterialX interpreter; displacement is unapplied. Preview PNGs are opaque 8-bit
+sRGB. Validate syntax, actually render and open the images. Check all assigned
+parts, silhouettes, normal direction, liquid visibility and at least two angles;
+also inspect another HDR environment for reflective/transmissive materials.
+Build an image-node sheet in a later invocation when comparing saved preview PNGs.
+No preview PNG may feed its own material. Keep optical claims proportionate to
+what was tested and use a suitable path tracer for final nested-volume evaluation.
+
+## Bake material results into model UVs
+
+Use `type:"export_bake"` for color, roughness, metalness, height and tangent normals.
+This CPU output is distinct from `model bake` geometry maps and needs no GPU. Read
+[ExportBake](docs/EXPORT_BAKE.md) for the full schema and limits.
+
+```sh
+./build/texutil samples/models/export-bake.json --out out/export-bake --threads 8 --json
+./build/texutil out/export-bake/manifest.assets/preview.json --out out/export-bake/preview
+```
+
+Only the preview command needs Filament. For the prepared bottle, use
+`samples/models/bottle/export-bake.json --out out/bottle/baked`, then
+`samples/models/bottle/baked-preview.json --out out/bottle/baked-preview`. These
+require the original prepared bottle and geometry bakes described above.
+
+- Output names end in `.json`, usually `manifest.json`; generated textures and
+  recipes go in the adjacent `<manifest-stem>.assets/<slot>/` directories.
+- Require unique non-overlapping 0..1 UVs. The baker does not unwrap, copy, displace
+  or modify the mesh. Unwrapping invalidates previous UV textures and masks.
+- Bind exact material names or `#index` slots to external recipe JSONs, with an
+  optional MaterialX output selector. A default `material` covers remaining slots.
+  ExportBake does not accept local parent MaterialX outputs or arbitrary disk MTLX.
+- Set bake `size:32..16384`, `padding:0..64`, and `normal_convention`. Defaults are
+  1024, 8, and `directx`. CLI `--size` does not change bake resolution or external
+  recipe sizes. Each external recipe retains its seed and imports.
+- 8K/16K ExportBake is supported with sufficient `--memory` (MiB). Raster/output
+  reserves are about 2.25/9 GiB respectively, plus source graph and mesh memory.
+  The default 1024 MiB budget will reject those sizes before the large allocation.
+- UV and triplanar projection use the same controls as previews. Source atlas masks
+  must use UV projection; do not reinterpret them as triplanar detail.
+- Explicit per-binding `height` names a scalar PNG output of the recipe. Otherwise
+  displacement supplies height, or it falls back to midlevel 0.5 with
+  `source_present:false`. Height is not inferred from normals. Preserve or specify
+  `height_scale` and `height_midlevel`; explicit height alone does not turn on
+  displacement. These units remain a material-authoring responsibility.
+- Base color is 8-bit sRGB; scalar channels and normals are 16-bit raw PNGs. Values
+  clamp to 0..1. Source images are evaluated as float buffers before bilinear
+  projection sampling. Supersampling/anisotropic footprint filtering is not present.
+- Normal strength and DirectX/OpenGL conversion are applied once. Triplanar normals
+  are converted to the target UV tangent frame; exported helper scale is 1. The
+  CPU basis uses Lengyel tangents like the preview, not MikkTSpace. Check the target
+  DCC's normal shading, especially mirrored UVs and seams.
+- Preserve separate material slots and optical constants. Extra texture-bound
+  scalar/color inputs, including transmission tint, are also projected to UV maps
+  so exported materials remain connected. Reflections/refraction appearance and
+  lighting are not baked; hybrid preview limitations still apply.
+- Each material receives a separate full-atlas texture set with independent
+  padding. Exported `material.json` recipes can be reused through preview bindings.
+  Copy each MaterialX with its PNGs, keep the original mesh/UVs/slot order, and
+  update the generated preview's absolute model path when moving the package.
+- Inspect the manifest's files, encodings, height metadata and memory estimate.
+  Validate by rendering original and baked materials under matched camera/light
+  settings. Pixel differences from filtering and finite atlas resolution are
+  expected; missing parts or reversed atlas placement are defects.
+
+The preview explicitly lets Filament flip image V once while generating tangents
+from original mesh UVs. Do not add another V or normal-green flip to compensate
+for old renders. The optional GPU test documented in EXPORT_BAKE.md checks this
+with an asymmetric color atlas. Readback rows are already top-down; do not flip
+the rendered frame. Bottle recipes now use zero roll, removing the old 180-degree
+compensation for upside-down readback.
 
 ## Tiling, performance and delivery checks
 

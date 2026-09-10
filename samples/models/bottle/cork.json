@@ -1,0 +1,94 @@
+{
+  "size": 1024,
+  "tile": true,
+  "imports": {
+    "cork": "../../cork.json"
+  },
+  "nodes": {
+    "color": {
+      "op": "ramp",
+      "input": "cork.surface-tone",
+      "stops": [
+        [
+          0,
+          "#50301b"
+        ],
+        [
+          0.35,
+          "#80522d"
+        ],
+        [
+          0.7,
+          "#b9894d"
+        ],
+        [
+          1,
+          "#d4ac71"
+        ]
+      ]
+    },
+    "height": {
+      "op": "levels",
+      "input": "cork.height",
+      "in": [
+        0.2,
+        0.7
+      ],
+      "out": [
+        0.48,
+        0.52
+      ]
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.04,
+      "convention": "directx"
+    },
+    "roughness": {
+      "op": "levels",
+      "input": "cork.roughness",
+      "out": [
+        0.62,
+        0.85
+      ]
+    }
+  },
+  "outputs": {
+    "color.png": {
+      "node": "color",
+      "bits": 8
+    },
+    "roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "normal.png": {
+      "node": "normal",
+      "bits": 16
+    },
+    "material.mtlx": {
+      "type": "materialx",
+      "name": "BottleCork",
+      "version": "1.39",
+      "inputs": {
+        "base_color": {
+          "texture": "color.png"
+        },
+        "specular_roughness": {
+          "texture": "roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.45
+      },
+      "normal": {
+        "texture": "normal.png",
+        "convention": "directx"
+      }
+    }
+  }
+}

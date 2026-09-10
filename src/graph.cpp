@@ -1,7 +1,10 @@
 #include "texutil/texutil.hpp"
+#include "texutil/model.hpp"
+#include "texutil/material_recipe.hpp"
 #include <algorithm>
 #include <chrono>
 #include <fstream>
+#include <iostream>
 #include <set>
 #include <stdexcept>
 
@@ -42,7 +45,9 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
     require(defaultBits == 8 || defaultBits == 16 || defaultBits == 32, "bits must be 8, 16 or 32");
     auto expanded=expandImports(doc,base_,seed_,tile_);
     doc["nodes"]=std::move(expanded.nodes);
-    require(!doc["nodes"].empty(), "nodes must be a nonempty object, or supplied through imports");
+    bool previewOnly=doc.contains("outputs")&&doc["outputs"].is_object()&&!doc["outputs"].empty();
+    if(previewOnly)for(const auto& o:doc["outputs"])previewOnly&=o.is_object()&&(o.value("type",std::string{})=="preview"||o.value("type",std::string{})=="export_bake"||o.value("type",std::string{})=="materialx");
+    require(!doc["nodes"].empty()||previewOnly, "nodes must be a nonempty object, or supplied through imports");
     require(doc["nodes"].size() <= 4096, "maximum 4096 nodes after preset expansion");
     for (auto it = doc["nodes"].begin(); it != doc["nodes"].end(); ++it) {
         require(!it.key().empty(), "node names cannot be empty");
@@ -67,9 +72,13 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
     for (auto it = doc["outputs"].begin(); it != doc["outputs"].end(); ++it) {
         Json o = it.value(); if (o.is_string()) o = {{"node", o}};
         std::string type = string(o.value("type", Json("image")), "output type");
-        require(type == "image" || type == "sheet" || type == "materialx", "output type must be image, sheet or materialx");
+        require(type == "image" || type == "sheet" || type == "materialx" || type == "preview" || type == "export_bake", "output type must be image, sheet, materialx, preview or export_bake");
         Output out;
-        if (type == "materialx") {
+        if(type=="export_bake") {
+            out.bake=parseExportBake(o,base_);
+        } else if (type == "preview") {
+            out.preview=parsePreview(o,base_);out.preview.value()["repeat"]=tile_;
+        } else if (type == "materialx") {
             out.material = parseMaterialX(o);
         } else if (type == "sheet") {
             fields(o, {"type", "format", "bits", "alpha", "srgb", "items", "columns", "cell", "padding", "font_scale", "labels", "title", "background", "text_color"}, "output '" + it.key() + "'");
@@ -84,8 +93,8 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
         require(!it.key().empty() && !path.is_absolute() && path.has_filename(), "output filename must be relative to --out");
         for (const auto& part : path) require(part != "..", "output filenames cannot contain '..'");
         std::string extension = path.extension().string(); if (!extension.empty()) extension.erase(0, 1);
-        out.format = out.material ? "mtlx" : string(o.value("format", Json(extension.empty() ? (out.sheet ? "png" : defaultFormat) : extension)), "output format");
-        require(out.material || out.format == "png" || out.format == "ppm" || out.format == "pgm" || out.format == "pfm", "unsupported output format '" + out.format + "'");
+        out.format = out.bake ? "json" : out.material ? "mtlx" : string(o.value("format", Json(extension.empty() ? ((out.sheet || out.preview) ? "png" : defaultFormat) : extension)), "output format");
+        require(out.bake || out.material || out.format == "png" || out.format == "ppm" || out.format == "pgm" || out.format == "pfm", "unsupported output format '" + out.format + "'");
         require(extension.empty() || extension == out.format, "output extension must match format");
         if (extension.empty()) path += "." + out.format;
         require(destinations.insert(path.lexically_normal()).second, "duplicate output path '" + path.string() + "'");
@@ -93,7 +102,8 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
         for(const auto& imported:expanded.files)require(destination!=imported,"output would overwrite imported JSON '"+imported.string()+"'");
         for (const auto& [id, node] : nodes_) if (node["op"] == "image") require(destination != std::filesystem::weakly_canonical(base_ / node["path"].get<std::string>()), "output would overwrite input image for node '" + id + "'");
         out.name = path.string();
-        if (out.material) { outputs_.push_back(out); continue; }
+        if (out.material || out.bake) { outputs_.push_back(out); continue; }
+        if(out.preview) { require(out.format=="png","preview output requires PNG"); outputs_.push_back(out); continue; }
         out.bits = boundedInteger(o.value("bits", Json(out.sheet ? 8 : (out.format == "pfm" ? 32 : defaultBits))), 8, 32, "output bits");
         require(out.format == "pfm" ? out.bits == 32 : (out.bits == 8 || out.bits == 16), "PFM requires 32 bits; PNG/PPM/PGM require 8 or 16");
         out.alpha = boolean(o.value("alpha", Json(out.sheet ? false : alpha)), "output alpha");
@@ -104,6 +114,16 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
         outputs_.push_back(out);
     }
     validateMaterialXReferences(outputs_);
+    for(const auto& preview:outputs_)if(preview.preview){auto directory=std::filesystem::weakly_canonical(options_.out/"preview-materials"/(preview.name+".assets"));for(const auto& output:outputs_){auto relative=std::filesystem::weakly_canonical(options_.out/output.name).lexically_relative(directory);require(relative.empty()||*relative.begin()=="..","output collides with reserved preview-material directory");}}
+    for(const auto& bake:outputs_)if(bake.bake){auto path=std::filesystem::path(bake.name);auto directory=std::filesystem::weakly_canonical(options_.out/path.parent_path()/(path.stem().string()+".assets"));
+        for(const auto& output:outputs_){auto destination=std::filesystem::weakly_canonical(options_.out/output.name);auto relative=destination.lexically_relative(directory);require(relative.empty()||*relative.begin()=="..","output collides with reserved export_bake package");require(destination!=std::filesystem::weakly_canonical(bake.bake->at("model").get<std::string>()),"output would overwrite bake model");}
+        auto protect=[&](const std::filesystem::path& input){auto canonical=std::filesystem::weakly_canonical(input);auto rel=canonical.lexically_relative(directory);require(rel.empty()||*rel.begin()=="..","bake package overlaps an input asset");for(const auto& output:outputs_)require(canonical!=std::filesystem::weakly_canonical(options_.out/output.name),"output would overwrite bake recipe asset");};
+        protect(bake.bake->at("model").get<std::string>());for(const auto& file:expanded.files)protect(file);for(const auto& [id,node]:nodes_)if(node["op"]=="image")protect(base_/node["path"].get<std::string>());
+        std::vector<Json> bindings;if(bake.bake->contains("material"))bindings.push_back(bake.bake->at("material"));if(bake.bake->contains("materials"))for(const auto& b:bake.bake->at("materials"))bindings.push_back(b);
+        for(const auto& b:bindings){protect(b.at("graph").get<std::string>());auto recipe=loadMaterialRecipe(b,b.contains("height")?std::vector<std::string>{b["height"].get<std::string>()}:std::vector<std::string>{});auto expandedRecipe=expandImports(recipe.document,recipe.base,recipe.document.value("seed",42),recipe.document.value("tile",false));for(const auto& file:expandedRecipe.files)protect(file);for(const auto& node:expandedRecipe.nodes)if(node["op"]=="image")protect(recipe.base/node["path"].get<std::string>());}
+    }
+    validatePreviewReferences(outputs_);
+    for(const auto& o:outputs_)if(o.preview)for(const auto& dest:outputs_) { auto d=std::filesystem::weakly_canonical(options_.out/dest.name); for(const auto* key:{"model","environment"}) require(d!=std::filesystem::weakly_canonical(o.preview->at(key).get<std::string>()),"output would overwrite preview asset"); }
     state.clear();
     std::function<void(const std::string&)> schedule = [&](const std::string& id) {
         if (state[id]) return;
@@ -111,12 +131,13 @@ Graph::Graph(Json doc, std::filesystem::path base, Options options) : base_(std:
         for (const auto& dependency : dependencies(nodes_.at(id))) schedule(dependency);
         order_.push_back(id);
     };
-    for (const auto& output : outputs_) { if (output.material) continue; if (output.sheet) { for (const auto& item : output.sheet->items) schedule(item.node); } else schedule(output.node); }
+    for (const auto& output : outputs_) { if (output.material || output.preview || output.bake) continue; if (output.sheet) { for (const auto& item : output.sheet->items) schedule(item.node); } else schedule(output.node); }
 }
 Json Graph::summary() const { return {{"size", {width_, height_}}, {"seed", seed_}, {"nodes", nodes_.size()}, {"reachable", order_.size()}, {"outputs", outputs_.size()}, {"order", order_}}; }
 Json Graph::render(const std::function<void(const Output&, const ImagePtr&)>& sink) {
     using Clock = std::chrono::steady_clock;
     auto start = Clock::now();
+    if(sink)for(const auto& o:outputs_)require(!o.preview&&!o.bake,"preview and export_bake outputs require disk exports");
     auto memory = std::make_shared<Memory>(); memory->limit = options_.memoryMb * 1024ull * 1024;
     Workers workers(options_.threads); Context context{width_, height_, seed_, tile_, base_, workers, memory};
     std::map<std::string, size_t> uses;
@@ -171,7 +192,24 @@ Json Graph::render(const std::function<void(const Output&, const ImagePtr&)>& si
         stats["output_details"].push_back({{"file",output.name},{"type","materialx"},{"format","mtlx"},{"shader","standard_surface"}});
         exportMs+=std::chrono::duration<double,std::milli>(Clock::now()-begin).count();
     }
+    for(const auto& output:outputs_)if(output.bake){auto begin=Clock::now();auto manifest=options_.out/output.name;auto result=exportBake(*output.bake,manifest,options_);for(const auto& file:result["files"])stats["files"].push_back((manifest.parent_path()/file.get<std::string>()).string());stats["files"].push_back(manifest.string());stats["output_details"].push_back(result);exportMs+=std::chrono::duration<double,std::milli>(Clock::now()-begin).count();}
+    for(const auto& output:outputs_)if(output.preview) {
+        auto begin=Clock::now();Json materials=Json::object();for(const auto& o:outputs_)if(o.material)materials[o.name]=*o.material;
+        Json settings=*output.preview;settings["texture_srgb"]=Json::object();settings["threads"]=options_.threads;
+        settings["asset_directory"]=(options_.out/"preview-materials"/(output.name+".assets")).string();
+        for(const auto& source:outputs_)if(!source.material&&!source.preview&&!source.bake&&!source.sheet)settings["texture_srgb"][source.name]=source.srgb&&outputKinds.at(source.name)==Kind::Color;
+        for(const auto& warning:settings.value("warnings",Json::array()))std::cerr<<"preview warning: "<<warning.get<std::string>()<<'\n';
+        Json feedback;auto image=renderPreview(settings,materials,options_.out,memory,&feedback);
+        for(const auto& file:feedback["files"])stats["files"].push_back(file);
+        writeImage(options_.out/output.name,*image,"png",8,false,true,background_);
+        stats["files"].push_back((options_.out/output.name).string());
+        stats["output_details"].push_back({{"file",output.name},{"type","preview"},{"renderer","filament"},{"projection",settings.at("projection")},{"size",{image->width,image->height}},{"views",output.preview->at("views")},{"warnings",output.preview->value("warnings",Json::array())},{"format","png"}});
+        stats["output_details"].back()["materials"]=feedback["materials"];
+        for(const auto& warning:feedback["warnings"])stats["output_details"].back()["warnings"].push_back(warning);
+        exportMs+=std::chrono::duration<double,std::milli>(Clock::now()-begin).count();
+    }
     stats["peak_buffer_mb"] = memory->peak / (1024.0 * 1024.0);
+    for(const auto& detail:stats["output_details"])if(detail.value("type",std::string{})=="export_bake")stats["peak_buffer_mb"]=std::max(stats["peak_buffer_mb"].get<double>(),detail.at("estimated_peak_working_mb").get<double>());
     stats["export_ms"] = exportMs;
     stats["total_ms"] = std::chrono::duration<double, std::milli>(Clock::now() - start).count();
     return stats;

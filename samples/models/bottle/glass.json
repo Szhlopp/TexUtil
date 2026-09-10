@@ -1,0 +1,113 @@
+{
+  "size": 1024,
+  "tile": false,
+  "imports": {
+    "surface": "../../glass.json",
+    "prints": "../../fingerprints-scattered.json",
+    "dust": "../../dust.json",
+    "geo": "geometry.json"
+  },
+  "nodes": {
+    "contact": {
+      "op": "levels",
+      "input": "geo.cavity-soft",
+      "out": [
+        1,
+        0.25
+      ]
+    },
+    "surface-roughness": {
+      "op": "blend",
+      "a": "surface.roughness",
+      "b": "contact-prints",
+      "mode": "add",
+      "opacity": 0.28
+    },
+    "dusty": {
+      "op": "blend",
+      "a": "surface-roughness",
+      "b": "dust.dust",
+      "mask": "geo.cavity-soft",
+      "mode": "add",
+      "opacity": 0.2
+    },
+    "roughness": {
+      "op": "levels",
+      "input": "dusty",
+      "out": [
+        0.045,
+        0.7
+      ]
+    },
+    "height": {
+      "op": "levels",
+      "input": "surface.height",
+      "in": [
+        0.48,
+        0.5
+      ],
+      "out": [
+        0.498,
+        0.5
+      ]
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.014,
+      "convention": "directx",
+      "edge": "clamp"
+    },
+    "color": {
+      "op": "constant",
+      "value": "#f5fbf7"
+    },
+    "contact-prints": {
+      "op": "blend",
+      "a": "prints.scattered-prints",
+      "b": "contact",
+      "mode": "multiply"
+    }
+  },
+  "outputs": {
+    "color.png": {
+      "node": "color",
+      "bits": 8
+    },
+    "roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "normal.png": {
+      "node": "normal",
+      "bits": 16
+    },
+    "material.mtlx": {
+      "type": "materialx",
+      "name": "BottleGlass",
+      "version": "1.39",
+      "inputs": {
+        "base_color": {
+          "texture": "color.png"
+        },
+        "specular_roughness": {
+          "texture": "roughness.png"
+        },
+        "metalness": 0,
+        "specular_IOR": 1.5,
+        "transmission": 1,
+        "transmission_color": "#dcefdc",
+        "transmission_depth": 1,
+        "thin_walled": false
+      },
+      "normal": {
+        "texture": "normal.png",
+        "convention": "directx"
+      }
+    }
+  }
+}

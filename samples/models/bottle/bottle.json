@@ -1,0 +1,142 @@
+{
+  "size": 1024,
+  "nodes": {},
+  "outputs": {
+    "studio.png": {
+      "type": "preview",
+      "model": "../../../out/bottle/bottle-final-atlas.obj",
+      "materials": {
+        "glass": {
+          "graph": "glass.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.035
+        },
+        "cork": {
+          "graph": "cork.json",
+          "projection": "triplanar",
+          "projection_scale": 30,
+          "thickness": 0.1
+        },
+        "bronze": {
+          "graph": "brass.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.1
+        },
+        "gold": {
+          "graph": "gold.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.1
+        },
+        "brew": {
+          "graph": "potion.json",
+          "projection": "triplanar",
+          "projection_scale": 6,
+          "thickness": 0.65,
+          "refraction": "opaque"
+        },
+        "bubble": {
+          "graph": "bubbles.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.01,
+          "refraction": "opaque"
+        },
+        "emerald": {
+          "graph": "emerald.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.08,
+          "refraction": "opaque"
+        }
+      },
+      "environment": "studio",
+      "views": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          5,
+          65,
+          0
+        ],
+        [
+          12,
+          -45,
+          0
+        ]
+      ],
+      "size": 640,
+      "environment_rotation": 25,
+      "background": "#252c32",
+      "exposure": 0.3
+    },
+    "outdoor.png": {
+      "type": "preview",
+      "model": "../../../out/bottle/bottle-final-atlas.obj",
+      "materials": {
+        "glass": {
+          "graph": "glass.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.035
+        },
+        "cork": {
+          "graph": "cork.json",
+          "projection": "triplanar",
+          "projection_scale": 30,
+          "thickness": 0.1
+        },
+        "bronze": {
+          "graph": "brass.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.1
+        },
+        "gold": {
+          "graph": "gold.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.1
+        },
+        "brew": {
+          "graph": "potion.json",
+          "projection": "triplanar",
+          "projection_scale": 6,
+          "thickness": 0.65,
+          "refraction": "opaque"
+        },
+        "bubble": {
+          "graph": "bubbles.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.01,
+          "refraction": "opaque"
+        },
+        "emerald": {
+          "graph": "emerald.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.08,
+          "refraction": "opaque"
+        }
+      },
+      "environment": "outdoor",
+      "views": [
+        [
+          5,
+          25,
+          0
+        ]
+      ],
+      "size": 768,
+      "environment_rotation": -30,
+      "background": "#252c32",
+      "exposure": 0
+    }
+  }
+}

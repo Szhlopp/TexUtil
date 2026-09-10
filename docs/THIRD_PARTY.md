@@ -27,3 +27,35 @@ script uses the upstream SDK; distributing TexUtil does not require that SDK.
 The upstream [MaterialX license](licenses/MaterialX.txt) is retained with this metadata.
 
 TexUtil's own source uses the MIT license in [LICENSE](../LICENSE).
+
+## Model operations and optional previews
+
+Pinned source files and SHA-256 hashes are recorded in `cmake/Models.cmake`.
+License notices are retained under `docs/licenses/`.
+
+| Dependency | Pin | Selected license |
+| --- | --- | --- |
+| [ufbx](https://github.com/ufbx/ufbx) | `fcc5d6ba444cfd3eb80677dba5e37e493941abe5` | MIT option |
+| [xatlas](https://github.com/jpcy/xatlas) | `f700c7790aaa030e794b52ba7791a05c085faf0c` | MIT |
+| [cgltf](https://github.com/jkuhlmann/cgltf) | `85cd62382dfea638278962690cf515023f33ed00` | MIT |
+| [TinyBVH](https://github.com/jbikker/tinybvh) | `0e4584287823252cf83f0e9cd072848bec5f79c5` | MIT |
+| [Filament](https://github.com/google/filament/tree/v1.76.1) | 1.76.1 official desktop SDK; optional | Apache-2.0 |
+| stb_image HDR decoder | Copy shipped in Filament 1.76.1 | MIT option |
+
+Curvature evaluation, baking integration and projection logic are TexUtil code.
+Neither libigl nor Open3D is included. The two bundled HDRIs are CC0 Poly Haven
+assets; their [provenance](../assets/hdri/README.md) is included. The demo torus and
+its format-converted test fixtures are original project assets under MIT.
+
+The optional Filament SDK incorporates other components, including Abseil
+(Apache-2.0), MikkTSpace (zlib-style), smol-v (MIT option) and Zstandard (BSD option).
+Relevant notices are retained as `Filament-*-LICENSE.txt`; shader compiler notices
+from the pinned SDK's `matc --license` are in `Filament-shader-tools-NOTICES.txt`.
+TexUtil does not redistribute the SDK's sample applications or link its Assimp,
+Draco, Basis Universal, WebGPU/Dawn or SDL libraries. If distributing those tools
+or choosing additional SDK components, include their applicable notices too.
+
+The selected licenses permit proprietary applications; preserve copyright,
+license and attribution notices where required. Installing TexUtil copies the
+retained notices beside its shared assets. Also include notices for the actual
+libpng/zlib binaries supplied with any packaged executable.

@@ -1,0 +1,136 @@
+{
+  "size": 1024,
+  "tile": false,
+  "imports": {
+    "geo": "geometry.json",
+    "surface": "../../glass.json"
+  },
+  "nodes": {
+    "mottle": {
+      "op": "clouds",
+      "scale": 45,
+      "octaves": 3,
+      "seed": 821
+    },
+    "tarnish": {
+      "op": "blend",
+      "a": "geo.cavity-soft",
+      "b": "mottle",
+      "mode": "multiply"
+    },
+    "base": {
+      "op": "constant",
+      "value": "#ddb66c"
+    },
+    "dark": {
+      "op": "constant",
+      "value": "#686341"
+    },
+    "color": {
+      "op": "blend",
+      "a": "base",
+      "b": "dark",
+      "mask": "tarnish",
+      "mode": "mix",
+      "opacity": 0.4
+    },
+    "creased": {
+      "op": "blend",
+      "a": "finish",
+      "b": "geo.cavity-soft",
+      "mode": "add",
+      "opacity": 0.15
+    },
+    "roughness": {
+      "op": "blend",
+      "a": "creased",
+      "b": "surface.scratches",
+      "mode": "add",
+      "opacity": 0.13
+    },
+    "height": {
+      "op": "levels",
+      "input": "surface.height",
+      "in": [
+        0.48,
+        0.5
+      ],
+      "out": [
+        0.498,
+        0.5
+      ]
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.012,
+      "edge": "clamp",
+      "convention": "directx"
+    },
+    "metalness": {
+      "op": "levels",
+      "input": "tarnish",
+      "out": [
+        1,
+        0.4
+      ]
+    },
+    "unpolished": {
+      "op": "levels",
+      "input": "mottle",
+      "out": [
+        0.19,
+        0.28
+      ]
+    },
+    "finish": {
+      "op": "blend",
+      "a": "unpolished",
+      "b": "geo.convex",
+      "mode": "subtract",
+      "opacity": 0.035
+    }
+  },
+  "outputs": {
+    "color.png": {
+      "node": "color",
+      "bits": 8
+    },
+    "roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "height.png": {
+      "node": "height",
+      "bits": 16
+    },
+    "normal.png": {
+      "node": "normal",
+      "bits": 16
+    },
+    "material.mtlx": {
+      "type": "materialx",
+      "name": "BottleGold",
+      "version": "1.39",
+      "inputs": {
+        "base_color": {
+          "texture": "color.png"
+        },
+        "specular_roughness": {
+          "texture": "roughness.png"
+        },
+        "metalness": {
+          "texture": "metalness.png"
+        }
+      },
+      "normal": {
+        "texture": "normal.png",
+        "convention": "directx"
+      }
+    },
+    "metalness.png": {
+      "node": "metalness",
+      "bits": 16
+    }
+  }
+}

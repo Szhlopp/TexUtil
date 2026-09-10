@@ -1,0 +1,51 @@
+{
+  "size": 512,
+  "tile": false,
+  "imports": {
+    "mesh": "../../out/model-bake/maps.json"
+  },
+  "nodes": {
+    "cavities": {
+      "op": "invert",
+      "input": "mesh.ao"
+    }
+  },
+  "outputs": {
+    "cavities.png": {
+      "node": "cavities",
+      "bits": 16
+    },
+    "geometry.png": {
+      "type": "sheet",
+      "title": "Geometry / UV-space baked maps",
+      "columns": 3,
+      "cell": 256,
+      "items": [
+        {
+          "node": "mesh.curvature",
+          "label": "curvature"
+        },
+        {
+          "node": "mesh.ao",
+          "label": "ao"
+        },
+        {
+          "node": "mesh.thickness",
+          "label": "thickness"
+        },
+        {
+          "node": "mesh.materialids",
+          "label": "materialids"
+        },
+        {
+          "node": "mesh.position",
+          "label": "position"
+        },
+        {
+          "node": "mesh.object_normal",
+          "label": "object_normal"
+        }
+      ]
+    }
+  }
+}

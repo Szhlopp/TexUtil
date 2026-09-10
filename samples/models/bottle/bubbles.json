@@ -1,0 +1,44 @@
+{
+  "size": 1024,
+  "tile": false,
+  "imports": {},
+  "nodes": {
+    "color": {
+      "op": "constant",
+      "value": "#e0ffd9"
+    },
+    "roughness": {
+      "op": "constant",
+      "value": 0.035
+    }
+  },
+  "outputs": {
+    "color.png": {
+      "node": "color",
+      "bits": 8
+    },
+    "roughness.png": {
+      "node": "roughness",
+      "bits": 16
+    },
+    "material.mtlx": {
+      "type": "materialx",
+      "name": "Bubbles",
+      "version": "1.39",
+      "inputs": {
+        "base_color": {
+          "texture": "color.png"
+        },
+        "specular_roughness": {
+          "texture": "roughness.png"
+        },
+        "metalness": 0,
+        "transmission": 0.95,
+        "transmission_color": "#e0ffd9",
+        "specular_IOR": 1.05,
+        "emission": 0,
+        "emission_color": "#e0ffd9"
+      }
+    }
+  }
+}

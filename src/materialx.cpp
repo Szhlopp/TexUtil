@@ -102,7 +102,7 @@ Json parseMaterialX(const Json& output) {
 void validateMaterialXReferences(const std::vector<Output>& outputs) {
     for(const auto& out:outputs)if(out.material)for(const auto& [name,type]:bindings(*out.material)) {
         const auto& source=findOutput(outputs,name);
-        require(!source.sheet&&!source.material&&source.format=="png","texture '"+name+"' must reference a regular PNG output");
+        require(!source.sheet&&!source.material&&!source.preview&&!source.bake&&source.format=="png","texture '"+name+"' must reference a regular PNG output");
     }
 }
 void validateMaterialXImage(const std::vector<Output>& outputs, const Output& output, Kind kind) {

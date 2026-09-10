@@ -1,4 +1,5 @@
 #include "texutil/texutil.hpp"
+#include "texutil/model.hpp"
 #include <fstream>
 #include <iostream>
 #include <limits>
@@ -16,12 +17,15 @@ void help() {
   texutil presets [--json]
   texutil materialx [--json]       # Standard Surface input types and defaults
   texutil describe NODE
+  texutil model --help           # Load, check UVs, unwrap and bake geometry maps
 
 A file of '-' reads JSON from stdin; image/import paths then use the current directory.
 Render --json prints machine-readable statistics. --stats prints node timings.
 Defaults: output in current directory, up to 16 CPU threads, 1024 MB float buffers.
 PNG (8/16-bit), PPM, PGM, PFM outputs. Native labeled sheets: output type "sheet".
 MaterialX materials: output type "materialx". See docs/MATERIALX.md.
+Material UV baking: output type "export_bake" (CPU). See docs/EXPORT_BAKE.md.
+HDR-lit model previews: output type "preview" (optional Filament build). See docs/MODELS.md.
 Reuse JSON graphs with named "imports" and alias.node references. See docs/IMPORTS.md.
 See README.md, docs/NODES.md and docs/SHEETS.md.
 )";
@@ -37,6 +41,7 @@ int main(int argc, char** argv) {
     try {
         if (argc == 1 || std::string(argv[1]) == "--help" || std::string(argv[1]) == "-h") { help(); return 0; }
         if (std::string(argv[1]) == "--version") { std::cout << "texutil 0.1.0\n"; return 0; }
+        if (std::string(argv[1]) == "model") return tex::model::command(argc,argv);
         std::string command = "render", filename, node;
         int position = 1; std::string first = argv[position];
         if (first == "render" || first == "validate" || first == "nodes" || first == "describe" || first == "presets" || first == "materialx") { command = first; ++position; }

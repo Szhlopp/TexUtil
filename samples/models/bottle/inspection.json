@@ -1,0 +1,88 @@
+{
+  "size": 1024,
+  "tile": false,
+  "imports": {
+    "mesh": "../../../out/bottle/bake/maps.json",
+    "surface": "glass.json"
+  },
+  "nodes": {
+    "normal": {
+      "op": "image",
+      "path": "../../../out/bottle/render/preview-materials/studio.png.assets/1/normal.png",
+      "kind": "normal",
+      "srgb": false
+    },
+    "roughness": {
+      "op": "image",
+      "path": "../../../out/bottle/render/preview-materials/studio.png.assets/1/roughness.png",
+      "kind": "scalar",
+      "srgb": false
+    },
+    "height-inspection": {
+      "op": "levels",
+      "input": "surface.height",
+      "in": [
+        0.498,
+        0.5
+      ]
+    }
+  },
+  "outputs": {
+    "geometry-sheet.png": {
+      "type": "sheet",
+      "title": "Bottle / maps baked from actual geometry",
+      "columns": 3,
+      "cell": 320,
+      "items": [
+        {
+          "node": "mesh.ao",
+          "label": "ao"
+        },
+        {
+          "node": "mesh.curvature",
+          "label": "curvature"
+        },
+        {
+          "node": "mesh.thickness",
+          "label": "thickness"
+        },
+        {
+          "node": "mesh.materialids",
+          "label": "materialids"
+        },
+        {
+          "node": "mesh.position",
+          "label": "position"
+        },
+        {
+          "node": "mesh.object_normal",
+          "label": "object_normal"
+        }
+      ]
+    },
+    "glass-sheet.png": {
+      "type": "sheet",
+      "title": "Bottle / glass surface maps",
+      "columns": 3,
+      "cell": 320,
+      "items": [
+        {
+          "node": "height-inspection",
+          "label": "Scratch height / contrast boosted"
+        },
+        {
+          "node": "roughness",
+          "label": "Roughness / actual values"
+        },
+        {
+          "node": "normal",
+          "label": "Detail normal / DirectX"
+        }
+      ]
+    },
+    "glass-height.png": {
+      "node": "surface.height",
+      "bits": 16
+    }
+  }
+}

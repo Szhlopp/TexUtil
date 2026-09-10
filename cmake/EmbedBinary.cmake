@@ -1,0 +1,5 @@
+file(READ "${INPUT}" bytes HEX)
+string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," bytes "${bytes}")
+get_filename_component(directory "${OUTPUT}" DIRECTORY)
+file(MAKE_DIRECTORY "${directory}")
+file(WRITE "${OUTPUT}" "#pragma once\ninline const unsigned char ${SYMBOL}[] = {${bytes}};\n")

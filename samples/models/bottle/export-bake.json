@@ -1,0 +1,70 @@
+{
+  "nodes": {},
+  "outputs": {
+    "manifest.json": {
+      "type": "export_bake",
+      "model": "../../../out/bottle/bottle-final-atlas.obj",
+      "size": 2048,
+      "padding": 12,
+      "materials": {
+        "glass": {
+          "graph": "glass.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.035,
+          "culling": "back",
+          "height": "height.png"
+        },
+        "cork": {
+          "graph": "cork.json",
+          "projection": "triplanar",
+          "projection_scale": 30,
+          "thickness": 0.1,
+          "culling": "back",
+          "height": "height.png"
+        },
+        "bronze": {
+          "graph": "brass.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.1,
+          "culling": "back",
+          "height": "height.png"
+        },
+        "gold": {
+          "graph": "gold.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.1,
+          "culling": "back",
+          "height": "height.png"
+        },
+        "brew": {
+          "graph": "potion.json",
+          "projection": "triplanar",
+          "projection_scale": 6,
+          "thickness": 0.65,
+          "refraction": "cubemap",
+          "culling": "back",
+          "height": "height.png"
+        },
+        "bubble": {
+          "graph": "bubbles.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.01,
+          "refraction": "cubemap",
+          "culling": "back"
+        },
+        "emerald": {
+          "graph": "emerald.json",
+          "projection": "uv",
+          "projection_scale": 1,
+          "thickness": 0.08,
+          "refraction": "cubemap",
+          "culling": "back"
+        }
+      }
+    }
+  }
+}
