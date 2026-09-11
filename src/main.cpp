@@ -23,6 +23,7 @@ A file of '-' reads JSON from stdin; image/import paths then use the current dir
 Render --json prints machine-readable statistics. --stats prints node timings.
 Defaults: output in current directory, up to 16 CPU threads, 1024 MB float buffers.
 PNG (8/16-bit), PPM, PGM, PFM outputs. Native labeled sheets: output type "sheet".
+Seeded texture atlases: output type "spritesheet". See docs/SPRITESHEETS.md.
 MaterialX materials: output type "materialx". See docs/MATERIALX.md.
 Material UV baking: output type "export_bake" (CPU). See docs/EXPORT_BAKE.md.
 HDR-lit model previews: output type "preview" (optional Filament build). See docs/MODELS.md.

@@ -1,0 +1,161 @@
+{
+  "size": 248,
+  "seed": 42,
+  "tile": false,
+  "nodes": {
+    "outline": {
+      "op": "shape",
+      "type": "circle",
+      "size": [
+        0.64,
+        0.82
+      ],
+      "softness": 0.012,
+      "color": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "wobble_x": {
+      "op": "simplex",
+      "scale": 3,
+      "fractal": "fbm",
+      "octaves": 2
+    },
+    "wobble_y": {
+      "op": "simplex",
+      "scale": 5,
+      "fractal": "fbm",
+      "octaves": 2
+    },
+    "silhouette": {
+      "op": "warp",
+      "input": "outline",
+      "x": "wobble_x",
+      "y": "wobble_y",
+      "strength": 0.035,
+      "edge": "transparent"
+    },
+    "pigment": {
+      "op": "simplex",
+      "scale": 1.4,
+      "fractal": "fbm",
+      "octaves": 2
+    },
+    "pigment_color": {
+      "op": "ramp",
+      "input": "pigment",
+      "stops": [
+        [
+          0,
+          "#173c14"
+        ],
+        [
+          0.42,
+          "#548630"
+        ],
+        [
+          0.7,
+          "#91a34b"
+        ],
+        [
+          1,
+          "#c2af55"
+        ]
+      ]
+    },
+    "grain": {
+      "op": "simplex",
+      "scale": 55,
+      "fractal": "fbm",
+      "octaves": 3
+    },
+    "veins": {
+      "op": "stripes",
+      "count": 9,
+      "angle": 55
+    },
+    "vein_ridges": {
+      "op": "levels",
+      "input": "veins",
+      "gamma": 8
+    },
+    "vein_tint": {
+      "op": "levels",
+      "input": "vein_ridges",
+      "out": [
+        1,
+        0.56
+      ]
+    },
+    "color_detail": {
+      "op": "math",
+      "input": "pigment_color",
+      "b": "vein_tint",
+      "mode": "multiply"
+    },
+    "color": {
+      "op": "math",
+      "input": "silhouette",
+      "b": "color_detail",
+      "mode": "multiply"
+    },
+    "height_fine": {
+      "op": "levels",
+      "input": "grain",
+      "out": [
+        0.47,
+        0.53
+      ]
+    },
+    "height": {
+      "op": "blend",
+      "a": "height_fine",
+      "b": "vein_ridges",
+      "mode": "add",
+      "opacity": 0.025
+    },
+    "normal": {
+      "op": "normal",
+      "input": "height",
+      "strength": 0.008,
+      "convention": "opengl",
+      "edge": "clamp"
+    },
+    "roughness": {
+      "op": "levels",
+      "input": "grain",
+      "out": [
+        0.42,
+        0.65
+      ]
+    },
+    "zero": {
+      "op": "constant",
+      "value": 0
+    },
+    "one": {
+      "op": "constant",
+      "value": 1
+    },
+    "metallic_roughness": {
+      "op": "pack",
+      "r": "one",
+      "g": "roughness",
+      "b": "zero"
+    }
+  },
+  "outputs": {
+    "color.png": {
+      "node": "color",
+      "alpha": true
+    },
+    "normal.png": {
+      "node": "normal",
+      "bits": 16
+    },
+    "metallic-roughness.png": "metallic_roughness"
+  }
+}

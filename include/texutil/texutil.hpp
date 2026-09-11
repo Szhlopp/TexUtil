@@ -100,6 +100,7 @@ struct Output {
     std::optional<Json> material;
     std::optional<Json> preview;
     std::optional<Json> bake;
+    std::optional<Json> spritesheet;
     std::string text; // MaterialX XML; render callbacks receive a null image for this output.
     int bits = 8;
     bool alpha = false;
@@ -126,7 +127,7 @@ ImagePtr erode(const Json& node, const ImagePtr& input, const ImagePtr& mask, Co
 class Graph {
 public:
     Graph(Json document, std::filesystem::path base, Options options = {});
-    Json render(const std::function<void(const Output&, const ImagePtr&)>& sink = {});
+    Json render(const std::function<void(const Output&, const ImagePtr&)>& sink = {}, std::shared_ptr<Memory> memory = {});
     Json summary() const;
 private:
     std::map<std::string, Json> nodes_;
@@ -138,4 +139,6 @@ private:
     bool tile_ = false;
     Pixel background_{0, 0, 0, 1};
 };
+Json parseSpritesheet(const Json& output, const std::filesystem::path& base, const Options& options, int width, int height, int seed);
+Json renderSpritesheet(const Json& settings, const std::filesystem::path& manifest, const Options& options, std::shared_ptr<Memory> memory);
 }
