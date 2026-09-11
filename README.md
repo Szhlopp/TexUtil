@@ -289,6 +289,11 @@ the C++ tool can render them directly without Python.
 
 ## Labeled sheets and snow
 
+For seeded texture variants that a mesh can sample, use native
+[`spritesheet` output](docs/SPRITESHEETS.md). It packs matching PNG atlases and
+writes a grid/UV manifest that FoliageUtil can read for random per-card selection.
+See [the twelve-variant leaf example](samples/spritesheets/leaves.json).
+
 Outputs can combine multiple nodes into a native labeled graphic:
 
 ```json

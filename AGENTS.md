@@ -80,6 +80,14 @@ For a labeled comparison, add a native sheet alongside the individual outputs:
 ```
 
 This is the value of an output such as `material-sheet.png`, not a graph node.
+
+For seeded sprite variants, use native output `type:"spritesheet"` with an
+external `source` recipe, `columns`, optional `rows`, `count`, `padding` and
+optional `seed`. The parent `size` is the cell size including padding. It emits
+aligned PNG atlases and a JSON manifest; FoliageUtil reads that manifest for
+per-instance UV selection. Keep the JSON and `.assets` directory together. Read
+[SPRITESHEETS.md](docs/SPRITESHEETS.md) before authoring atlas recipes. Explicit
+node seeds and imported graph seeds remain pinned across variants.
 See [node controls](docs/NODES.md) and [sheet outputs](docs/SHEETS.md).
 
 ## Reuse recipes through JSON imports
